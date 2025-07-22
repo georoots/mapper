@@ -1,0 +1,1684 @@
+<!-- 
+GNU GENERAL PUBLIC LICENSE
+Version 3, 19 November 2007
+
+Copyright (C) 2025 GeoRoots
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoRoots Mapper - Deforestation Visualization</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        .welcome-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+
+        .welcome-container {
+            max-width: 800px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin: 20px;
+        }
+
+        .welcome-header {
+            background: linear-gradient(135deg, #999 0%, #888 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .language-selector {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 20px;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .language-selector:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .language-selector select {
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .language-selector select option {
+            background: #666;
+            color: white;
+        }
+
+        .welcome-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .welcome-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .welcome-header .text-license {
+            font-weight: 400;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .welcome-header .text-license a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .welcome-content {
+            padding: 30px;
+        }
+
+        .welcome-content > p {
+            font-size: 1.1rem;
+            color: #6c757d;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .file-drop-area {
+            width: 100%;
+            height: 280px;
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 20px;
+            transition: all 0.3s ease;
+            background-color: #f8f9fa;
+        }
+
+        .file-drop-area.is-active {
+            border-color: #007bff;
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-drop-area p {
+            font-size: 1.1rem;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .file-drop-area .or-text {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+
+        .upload-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        .welcome-footer {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            flex-direction: column;
+            color: white;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #007bff;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-overlay p {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .info-box {
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+        }
+
+        .info-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .info-content {
+            font-size: 14px;
+        }
+
+        .area-circle {
+            stroke: #3388ff;
+            stroke-width: 2;
+            stroke-opacity: 0.8;
+            fill: #3388ff;
+            fill-opacity: 0.15;
+        }
+
+        .year-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            max-width: 280px;
+        }
+
+        .year-controls h3 {
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .year-controls h4 {
+            margin-bottom: 10px;
+            color: #495057;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group button {
+            background: #f0f0f0;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .control-group button:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-group button.active {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .control-group button.active:hover {
+            background: #218838;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            max-width: 250px;
+        }
+
+        .legend h4 {
+            margin-bottom: 10px;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+        }
+
+        #year-buttons button {
+            padding: 6px 8px;
+            margin: 2px;
+            background-color: #f0f0f0;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #year-buttons button:hover {
+            background-color: #e9ecef;
+            transform: translateY(-1px);
+        }
+
+        #year-buttons button.active {
+            background-color: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .controls-toggle {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .controls-toggle:hover {
+            background: #0056b3;
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .welcome-header h1 {
+                font-size: 2rem;
+            }
+            
+            .welcome-container {
+                margin: 10px;
+            }
+            
+            .welcome-header,
+            .welcome-content {
+                padding: 20px;
+            }
+            
+            .file-drop-area {
+                height: 200px;
+            }
+            
+            .year-controls {
+                max-width: 200px;
+                padding: 10px;
+            }
+            
+            .legend {
+                max-width: 200px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Welcome Overlay -->
+    <div id="welcomeOverlay" class="welcome-overlay">
+        <div class="welcome-container">
+            <div class="welcome-header">
+                <div class="language-selector">
+                    <select id="languageSelect" onchange="changeLanguage(this.value)">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                        <option value="pt">Português</option>
+                        <option value="sw">Swahili</option>
+                        <option value="zh">中文</option>
+                        <option value="th">ไทย</option>
+                        <option value="am">አማርኛ</option>
+                    </select>
+                </div>
+                <h1 data-i18n="title">GeoRoots Mapper</h1>
+                <p><span data-i18n="downloadText">Download latest version and other tools on</span> <a href="https://georoots.coffee/">https://georoots.coffee/</a></p>
+                <p class="text-license" data-i18n="licenseText">This software is free, released under GPLv3 open source license, see source code for full disclaimer.</p>
+            </div>
+            <div class="welcome-content">
+                <p data-i18n="subtitle">This is a simple tool for visual inspection of EU Deforestation Regulation DDS files.</p>
+                <p data-i18n="uploadInfo">Your provided GeoJSON file will be displayed on a map together with deforestation overlay.</p>
+                <div id="fileDropArea" class="file-drop-area">
+                    <div class="upload-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            <path d="M12,12L16,16H13.5V19H10.5V16H8L12,12Z"/>
+                        </svg>
+                    </div>
+                    <p data-i18n="uploadText">Drag & drop your GeoJSON file here</p>
+                    <p class="or-text" data-i18n="orText">or</p>
+                    <input type="file" id="fileInput" class="hidden" accept=".geojson,.json">
+                    <button id="fileSelectButton" class="upload-button" data-i18n="selectGeoJSONButton">Select GeoJSON File</button>
+                </div>
+            </div>
+            <div class="welcome-footer">
+                <p data-i18n="privacyText">Your file and any of its content is only processed locally in your browser and none of your information is sent to GeoRoots, the map providers or anyone else.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p data-i18n="processingText">Processing GeoJSON data...</p>
+    </div>
+
+    <!-- Controls Toggle Button -->
+    <button id="controlsToggle" class="controls-toggle hidden" data-i18n="hideControls">Hide Controls</button>
+
+    <!-- Deforestation Controls -->
+    <div id="deforestationControls" class="year-controls hidden">
+        <h3 data-i18n="deforestationControlsTitle">Deforestation Year Controls</h3>
+        <div class="control-group">
+            <h4 data-i18n="timePeriods">Time Periods:</h4>
+            <button id="btn-all-years" data-i18n="allYears">All Years</button>
+            <button id="btn-before-2021" data-i18n="before2021">Before 2021</button>
+            <button id="btn-2021-onwards" class="active" data-i18n="from2021">2021 Onwards</button>
+            <button id="btn-clear-all" data-i18n="clearAll">Clear All</button>
+        </div>
+        <div class="control-group">
+            <h4 data-i18n="individualYears">Individual Years:</h4>
+            <div id="year-buttons"></div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div id="mapLegend" class="legend hidden">
+        <h4 data-i18n="legendTitle">Legend</h4>
+        <div id="legend-items"></div>
+    </div>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Translation Data -->
+    <script type="application/json" id="lang-en">
+    {
+        "title": "GeoRoots Mapper",
+        "pageTitle": "GeoRoots Mapper - Deforestation Visualization",
+        "downloadText": "Download latest version and other tools on",
+        "subtitle": "This is a simple tool for visual inspection of EU Deforestation Regulation DDS files.",
+        "uploadInfo": "Your provided GeoJSON file will be displayed on a map together with deforestation overlay.",
+        "uploadText": "Drag & drop your GeoJSON file here",
+        "orText": "or",
+        "selectGeoJSONButton": "Select GeoJSON File",
+        "privacyText": "Your file and any of its content is only processed locally in your browser and none of your information is sent to GeoRoots, the map providers or anyone else.",
+        "licenseText": "This software is free, released under GPLv3 open source license, see source code for full disclaimer.",
+        "processingText": "Processing GeoJSON data...",
+        "hideControls": "Hide Controls",
+        "showControls": "Show Controls",
+        "deforestationControlsTitle": "Deforestation Year Controls",
+        "timePeriods": "Time Periods:",
+        "allYears": "All Years",
+        "before2021": "Before 2021",
+        "from2021": "2021 Onwards",
+        "clearAll": "Clear All",
+        "individualYears": "Individual Years:",
+        "legendTitle": "Legend",
+        "plotBoundary": "Plot Boundary",
+        "treeCoverLoss": "{year} Tree Cover Loss",
+        "noProperties": "No properties found",
+        "propertiesTitle": "Properties",
+        "invalidGeoJSON": "Error processing the file. Please make sure it is a valid GeoJSON file.",
+        "streetMap": "Street Map",
+        "topoMap": "Topographic Map",
+        "satelliteLatest": "Satellite latest",
+        "satellite2020": "Satellite from 2020",
+        "forestCoverage": "Forest Coverage (GFC 2020v2)",
+        "treeCoverLossAttribution": "Tree Cover Loss © Global Forest Watch",
+        "esri2020Attribution": "Tiles © Esri 2020 — Source: Esri, Maxar, Earthstar Geographics",
+        "gfcAttribution": "European Commission JRC - Global Forest Change 2020v2"
+    }
+    </script>
+
+    <script type="application/json" id="lang-es">
+    {
+        "title": "GeoRoots Mapper",
+        "pageTitle": "GeoRoots Mapper - Visualización de Deforestación",
+        "downloadText": "Descarga la versión más reciente y otras herramientas en",
+        "subtitle": "Esta es una herramienta simple para la inspección visual de archivos DDS del Reglamento de Deforestación de la UE.",
+        "uploadInfo": "Tu archivo GeoJSON se mostrará en un mapa junto con la superposición de deforestación.",
+        "uploadText": "Arrastra y suelta tu archivo GeoJSON aquí",
+        "orText": "o",
+        "selectGeoJSONButton": "Seleccionar archivo GeoJSON",
+        "privacyText": "Tu archivo y su contenido solo se procesan localmente en tu navegador y ninguna información se envía a GeoRoots, los proveedores de mapas ni a nadie más.",
+        "licenseText": "Este software es gratuito, bajo licencia de código abierto GPLv3; consulta el código fuente para el descargo de responsabilidad completo.",
+        "processingText": "Procesando datos GeoJSON...",
+        "hideControls": "Ocultar controles",
+        "showControls": "Mostrar controles",
+        "deforestationControlsTitle": "Controles de año de deforestación",
+        "timePeriods": "Períodos de tiempo:",
+        "allYears": "Todos los años",
+        "before2021": "Antes de 2021",
+        "from2021": "Desde 2021",
+        "clearAll": "Limpiar todo",
+        "individualYears": "Años individuales:",
+        "legendTitle": "Leyenda",
+        "plotBoundary": "Límite de parcela",
+        "treeCoverLoss": "Pérdida de cobertura arbórea {year}",
+        "noProperties": "No se encontraron propiedades",
+        "propertiesTitle": "Propiedades",
+        "invalidGeoJSON": "Error al procesar el archivo. Por favor, asegúrate de que es un archivo GeoJSON válido.",
+        "streetMap": "Mapa de calles",
+        "topoMap": "Mapa topográfico",
+        "satelliteLatest": "Satélite más reciente",
+        "satellite2020": "Satélite de 2020",
+        "forestCoverage": "Cobertura forestal (GFC 2020v2)",
+        "treeCoverLossAttribution": "Pérdida de cobertura arbórea © Global Forest Watch",
+        "esri2020Attribution": "Teselas © Esri 2020 — Fuente: Esri, Maxar, Earthstar Geographics",
+        "gfcAttribution": "Comisión Europea JRC - Cambio Global de Bosques 2020v2"
+    }
+    </script>
+
+    <script type="application/json" id="lang-fr">
+    {
+        "title": "GeoRoots Mapper",
+        "pageTitle": "GeoRoots Mapper - Visualisation de la déforestation",
+        "downloadText": "Téléchargez la dernière version et d'autres outils sur",
+        "subtitle": "Ceci est un outil simple pour l'inspection visuelle des fichiers DDS du règlement européen sur la déforestation.",
+        "uploadInfo": "Votre fichier GeoJSON sera affiché sur une carte avec la superposition de la déforestation.",
+        "uploadText": "Glissez-déposez votre fichier GeoJSON ici",
+        "orText": "ou",
+        "selectGeoJSONButton": "Sélectionner un fichier GeoJSON",
+        "privacyText": "Votre fichier et son contenu ne sont traités que localement dans votre navigateur et aucune information n'est envoyée à GeoRoots, aux fournisseurs de cartes ou à quiconque.",
+        "licenseText": "Ce logiciel est gratuit, publié sous licence open source GPLv3, voir le code source pour la clause de non-responsabilité complète.",
+        "processingText": "Traitement des données GeoJSON...",
+        "hideControls": "Masquer les contrôles",
+        "showControls": "Afficher les contrôles",
+        "deforestationControlsTitle": "Contrôles de l'année de déforestation",
+        "timePeriods": "Périodes de temps :",
+        "allYears": "Toutes les années",
+        "before2021": "Avant 2021",
+        "from2021": "Depuis 2021",
+        "clearAll": "Tout effacer",
+        "individualYears": "Années individuelles :",
+        "legendTitle": "Légende",
+        "plotBoundary": "Limite de la parcelle",
+        "treeCoverLoss": "Perte de couvert arboré {year}",
+        "noProperties": "Aucune propriété trouvée",
+        "propertiesTitle": "Propriétés",
+        "invalidGeoJSON": "Erreur lors du traitement du fichier. Veuillez vous assurer qu'il s'agit d'un fichier GeoJSON valide.",
+        "streetMap": "Carte des rues",
+        "topoMap": "Carte topographique",
+        "satelliteLatest": "Satellite le plus récent",
+        "satellite2020": "Satellite de 2020",
+        "forestCoverage": "Couverture forestière (GFC 2020v2)",
+        "treeCoverLossAttribution": "Perte de couvert arboré © Global Forest Watch",
+        "esri2020Attribution": "Tuiles © Esri 2020 — Source : Esri, Maxar, Earthstar Geographics",
+        "gfcAttribution": "Commission européenne JRC - Changement global des forêts 2020v2"
+    }
+    </script>
+
+    <script type="application/json" id="lang-pt">
+    {
+        "title": "GeoRoots Mapper",
+        "pageTitle": "GeoRoots Mapper - Visualização de Desmatamento",
+        "downloadText": "Baixe a versão mais recente e outras ferramentas em",
+        "subtitle": "Esta é uma ferramenta simples para inspeção visual de arquivos DDS do Regulamento de Desmatamento da UE.",
+        "uploadInfo": "Seu arquivo GeoJSON será exibido em um mapa junto com a sobreposição de desmatamento.",
+        "uploadText": "Arraste e solte seu arquivo GeoJSON aqui",
+        "orText": "ou",
+        "selectGeoJSONButton": "Selecionar arquivo GeoJSON",
+        "privacyText": "Seu arquivo e qualquer conteúdo dele são processados apenas localmente no seu navegador e nenhuma informação é enviada ao GeoRoots, aos provedores de mapas ou a qualquer outra pessoa.",
+        "licenseText": "Este software é gratuito, licenciado sob GPLv3 de código aberto; veja o código‑fonte para o aviso legal completo.",
+        "processingText": "Processando dados GeoJSON...",
+        "hideControls": "Ocultar controles",
+        "showControls": "Mostrar controles",
+        "deforestationControlsTitle": "Controles de ano de desmatamento",
+        "timePeriods": "Períodos de tempo:",
+        "allYears": "Todos os anos",
+        "before2021": "Antes de 2021",
+        "from2021": "A partir de 2021",
+        "clearAll": "Limpar tudo",
+        "individualYears": "Anos individuais:",
+        "legendTitle": "Legenda",
+        "plotBoundary": "Limite da parcela",
+        "treeCoverLoss": "Perda de cobertura arbórea {year}",
+        "noProperties": "Nenhuma propriedade encontrada",
+        "propertiesTitle": "Propriedades",
+        "invalidGeoJSON": "Erro ao processar o arquivo. Certifique-se de que é um arquivo GeoJSON válido.",
+        "streetMap": "Mapa de ruas",
+        "topoMap": "Mapa topográfico",
+        "satelliteLatest": "Satélite mais recente",
+        "satellite2020": "Satélite de 2020",
+        "forestCoverage": "Cobertura florestal (GFC 2020v2)",
+        "treeCoverLossAttribution": "Perda de cobertura arbórea © Global Forest Watch",
+        "esri2020Attribution": "Blocos © Esri 2020 — Fonte: Esri, Maxar, Earthstar Geographics",
+        "gfcAttribution": "Comissão Europeia JRC - Mudança Global das Florestas 2020v2"
+    }
+    </script>
+
+    <script type="application/json" id="lang-sw">
+    {
+        "title": "GeoRoots Mapper",
+        "pageTitle": "GeoRoots Mapper - Taswira ya Ukataji Miti",
+        "downloadText": "Pakua toleo la hivi karibuni na zana nyingine katika",
+        "subtitle": "Hii ni zana rahisi kwa ukaguzi wa macho wa faili za DDS za Udhibiti wa Ukataji Miti wa EU.",
+        "uploadInfo": "Faili yako ya GeoJSON itaonyeshwa kwenye ramani pamoja na tabaka la ukataji miti.",
+        "uploadText": "Buruta na udondoshe faili lako la GeoJSON hapa",
+        "orText": "au",
+        "selectGeoJSONButton": "Chagua Faili ya GeoJSON",
+        "privacyText": "Faili lako na maudhui yake yote yanachakatwa tu ndani ya kivinjari chako na hakuna taarifa zako zinazotumwa kwa GeoRoots, watoa ramani au mtu mwingine yeyote.",
+        "licenseText": "Programu hii ni bure, chini ya leseni ya vyanzo wazi GPLv3; angalia msimbo chanzo kwa taarifa kamili.",
+        "processingText": "Inachakata data ya GeoJSON...",
+        "hideControls": "Ficha vidhibiti",
+        "showControls": "Onyesha vidhibiti",
+        "deforestationControlsTitle": "Vidhibiti vya Mwaka wa Ukataji Miti",
+        "timePeriods": "Vipindi vya muda:",
+        "allYears": "Miaka yote",
+        "before2021": "Kabla ya 2021",
+        "from2021": "Kuanzia 2021",
+        "clearAll": "Futa vyote",
+        "individualYears": "Miaka ya kibinafsi:",
+        "legendTitle": "Maelezo",
+        "plotBoundary": "Mpaka wa shamba",
+        "treeCoverLoss": "Upotevu wa miti {year}",
+        "noProperties": "Hakuna mali zilizopatikana",
+        "propertiesTitle": "Mali",
+        "invalidGeoJSON": "Hitilafu katika kuchakata faili. Tafadhali hakikisha ni faili halali ya GeoJSON.",
+        "streetMap": "Ramani ya mitaa",
+        "topoMap": "Ramani ya topografia",
+        "satelliteLatest": "Satilaiti ya hivi karibuni",
+        "satellite2020": "Satilaiti ya 2020",
+        "forestCoverage": "Ufunikaji wa misitu (GFC 2020v2)",
+        "treeCoverLossAttribution": "Upotevu wa miti © Global Forest Watch",
+        "esri2020Attribution": "Vigae © Esri 2020 — Chanzo: Esri, Maxar, Earthstar Geographics",
+        "gfcAttribution": "Tume ya Ulaya JRC - Mabadiliko ya Misitu Duniani 2020v2"
+    }
+    </script>
+
+    <script type="application/json" id="lang-zh">
+    {
+        "title": "GeoRoots Mapper",
+        "pageTitle": "GeoRoots Mapper - 森林砍伐可视化",
+        "downloadText": "在此下载最新版本及其它工具",
+        "subtitle": "这是一个用于可视化检查欧盟森林砍伐法规 DDS 文件的简单工具。",
+        "uploadInfo": "您提供的 GeoJSON 文件将与森林砍伐叠加层一起显示在地图上。",
+        "uploadText": "将您的 GeoJSON 文件拖放到此处",
+        "orText": "或",
+        "selectGeoJSONButton": "选择 GeoJSON 文件",
+        "privacyText": "您的文件及其内容仅在您的浏览器中本地处理，您的信息不会发送给 GeoRoots、地图提供商或任何其他人。",
+        "licenseText": "本软件免费，采用 GPLv3 开源许可，详见源代码免责声明。",
+        "processingText": "正在处理 GeoJSON 数据...",
+        "hideControls": "隐藏控件",
+        "showControls": "显示控件",
+        "deforestationControlsTitle": "森林砍伐年份控制",
+        "timePeriods": "时间段：",
+        "allYears": "所有年份",
+        "before2021": "2021 年之前",
+        "from2021": "2021 年及以后",
+        "clearAll": "清除全部",
+        "individualYears": "单独年份：",
+        "legendTitle": "图例",
+        "plotBoundary": "地块边界",
+        "treeCoverLoss": "{year} 年森林损失",
+        "noProperties": "未找到属性",
+        "propertiesTitle": "属性",
+        "invalidGeoJSON": "处理文件出错。请确保它是有效的 GeoJSON 文件。",
+        "streetMap": "街道地图",
+        "topoMap": "地形图",
+        "satelliteLatest": "最新卫星图",
+        "satellite2020": "2020 年卫星图",
+        "forestCoverage": "森林覆盖（GFC 2020v2）",
+        "treeCoverLossAttribution": "森林损失 © Global Forest Watch",
+        "esri2020Attribution": "瓦片 © Esri 2020 — 来源：Esri, Maxar, Earthstar Geographics",
+        "gfcAttribution": "欧盟委员会 JRC - 全球森林变化 2020v2"
+    }
+    </script>
+
+    <script type="application/json" id="lang-th">
+    {
+        "title": "GeoRoots Mapper",
+        "pageTitle": "GeoRoots Mapper - การแสดงภาพการตัดไม้ทำลายป่า",
+        "downloadText": "ดาวน์โหลดเวอร์ชันล่าสุดและเครื่องมืออื่น ๆ ได้ที่",
+        "subtitle": "นี่คือเครื่องมือที่เรียบง่ายสำหรับการตรวจสอบไฟล์ DDS ของระเบียบการตัดไม้ทำลายป่าของสหภาพยุโรป",
+        "uploadInfo": "ไฟล์ GeoJSON ที่คุณให้มาจะแสดงบนแผนที่พร้อมกับชั้นข้อมูลการตัดไม้ทำลายป่า",
+        "uploadText": "ลากและวางไฟล์ GeoJSON ของคุณที่นี่",
+        "orText": "หรือ",
+        "selectGeoJSONButton": "เลือกไฟล์ GeoJSON",
+        "privacyText": "ไฟล์ของคุณและเนื้อหาทั้งหมดจะถูกประมวลผลเฉพาะในเบราว์เซอร์ของคุณเท่านั้น และจะไม่มีข้อมูลใด ๆ ของคุณถูกส่งไปยัง GeoRoots ผู้ให้บริการแผนที่ หรือบุคคลอื่น",
+        "licenseText": "ซอฟต์แวร์นี้ฟรี ภายใต้สัญญาอนุญาตโค้ดเปิด GPLv3 ดูซอร์สโค้ดสำหรับข้อจำกัดความรับผิดฉบับเต็ม",
+        "processingText": "กำลังประมวลผลข้อมูล GeoJSON...",
+        "hideControls": "ซ่อนตัวควบคุม",
+        "showControls": "แสดงตัวควบคุม",
+        "deforestationControlsTitle": "ตัวควบคุมปีการตัดไม้ทำลายป่า",
+        "timePeriods": "ช่วงเวลา:",
+        "allYears": "ทุกปี",
+        "before2021": "ก่อน 2021",
+        "from2021": "ตั้งแต่ 2021",
+        "clearAll": "ล้างทั้งหมด",
+        "individualYears": "ปีแต่ละปี:",
+        "legendTitle": "คำอธิบาย",
+        "plotBoundary": "ขอบเขตแปลง",
+        "treeCoverLoss": "การสูญเสียการปกคลุมของต้นไม้ {year}",
+        "noProperties": "ไม่พบคุณสมบัติ",
+        "propertiesTitle": "คุณสมบัติ",
+        "invalidGeoJSON": "เกิดข้อผิดพลาดในการประมวลผลไฟล์ โปรดตรวจสอบให้แน่ใจว่าเป็นไฟล์ GeoJSON ที่ถูกต้อง",
+        "streetMap": "แผนที่ถนน",
+        "topoMap": "แผนที่ภูมิประเทศ",
+        "satelliteLatest": "ดาวเทียมล่าสุด",
+        "satellite2020": "ดาวเทียมจากปี 2020",
+        "forestCoverage": "การปกคลุมป่า (GFC 2020v2)",
+        "treeCoverLossAttribution": "การสูญเสียการปกคลุมของต้นไม้ © Global Forest Watch",
+        "esri2020Attribution": "ไทล์ © Esri 2020 — แหล่งที่มา: Esri, Maxar, Earthstar Geographics",
+        "gfcAttribution": "คณะกรรมาธิการยุโรป JRC - การเปลี่ยนแปลงป่าไผ่ทั่วโลก 2020v2"
+    }
+    </script>
+
+    <script type="application/json" id="lang-am">
+    {
+        "title": "GeoRoots Mapper",
+        "pageTitle": "GeoRoots Mapper - የደን ማጥፋት ማሳያ",
+        "downloadText": "የቅርብ ስሪትን እና ሌሎች መሳሪያዎችን ያውርዱ",
+        "subtitle": "ይህ ቀላል መሳሪያ ነው ለአውሮፓ ህብረት የደን ማጥፋት ደንብ DDS ፋይሎች ለማየት።",
+        "uploadInfo": "የቀረበው GeoJSON ፋይል በካርታ ላይ ከደን ማጥፋት አካባቢ ጋር ይታያል።",
+        "uploadText": "የGeoJSON ፋይልዎን እዚህ ይጎትቱ እና ይጨምሩ",
+        "orText": "ወይም",
+        "selectGeoJSONButton": "GeoJSON ፋይል ይምረጡ",
+        "privacyText": "ፋይሉ እና ውሂቡ በአንተ አሳሽ ብቻ ይሰራል፣ መረጃዎ ወደ GeoRoots ወይም ማንኛውም ሰው አይላከውም።",
+        "licenseText": "ይህ ሶፍትዌር ነፃ ነው፣ በ GPLv3 ክፍት ምንጭ ፈቃድ የተሰጠ፣ ሙሉ ማስተናገድ ለማየት የምንጭ ኮድን ይመልከቱ።",
+        "processingText": "GeoJSON ዳታን በማስተናገድ ላይ...",
+        "hideControls": "መቆጣጠሪያዎቹን ደብቅ",
+        "showControls": "መቆጣጠሪያዎቹን አሳይ",
+        "deforestationControlsTitle": "የደን ማጥፋት ዓመት መቆጣጠሪያዎች",
+        "timePeriods": "የጊዜ ጊዜዎች:",
+        "allYears": "ሁሉም ዓመታት",
+        "before2021": "ከ2021 በፊት",
+        "from2021": "2021 ጀምሮ",
+        "clearAll": "ሁሉንም አጥፋ",
+        "individualYears": "የተናጠሉ ዓመታት:",
+        "legendTitle": "መለኪያ",
+        "plotBoundary": "የቦታ ድንበር",
+        "treeCoverLoss": "የደን መከላከያ ጥፋት {year}",
+        "noProperties": "ምንም ባህሪያት አልተገኙም",
+        "propertiesTitle": "ባህሪያት",
+        "invalidGeoJSON": "ፋይሉን ማስተናገድ ላይ ስህተት። እባክዎ ትክክለኛ GeoJSON ፋይል መሆኑን ያረጋግጡ።",
+        "streetMap": "የመንገድ ካርታ",
+        "topoMap": "የከተማ ካርታ",
+        "satelliteLatest": "የቅርብ ጊዜ ሳተላይት",
+        "satellite2020": "የ2020 ሳተላይት",
+        "forestCoverage": "የዱር ሽፋን (GFC 2020v2)",
+        "treeCoverLossAttribution": "የደን መከላከያ ጥፋት © Global Forest Watch",
+        "esri2020Attribution": "ታይል © Esri 2020 — ምንጭ: Esri, Maxar, Earthstar Geographics",
+        "gfcAttribution": "የአውሮፓ ኮሚሽን JRC - የዱር ዓለም ለውጥ 2020v2"
+    }
+    </script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Global variables
+        let map;
+        let polygonLayer;
+        let pointLayer;
+        let pointMarkerLayer;
+        let polygonMarkerLayer;
+        let currentGeoJSON;
+        let treeLossLayer;
+        let baseLayers = {};
+        let layerControl;
+        let activeYears = {};
+        let currentBaseLayer;
+        let satelliteTooltip;
+        
+        // Initialize the map when the DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTranslations();
+            const savedLanguage = localStorage.getItem('georoots-mapper-language');
+            const browserLanguage = navigator.language.split('-')[0];
+            const defaultLanguage = savedLanguage || (translations[browserLanguage] ? browserLanguage : 'en');
+            document.getElementById('languageSelect').value = defaultLanguage;
+            changeLanguage(defaultLanguage);
+            showWelcomeOverlay();
+            initializeFileUpload();
+        });
+
+        function showWelcomeOverlay() {
+            document.getElementById('welcomeOverlay').style.display = 'flex';
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+        
+        function hideWelcomeOverlay() {
+            document.getElementById('welcomeOverlay').style.display = 'none';
+        }
+
+        function getBaseLayers() {
+            return {
+                [getText('streetMap')]: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }),
+                [getText('topoMap')]: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
+                }),
+                [getText('satelliteLatest')]: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 18,
+                    attribution: '&copy; <a href="https://www.esri.com">Esri</a>'
+                }),
+                [getText('satellite2020')]: L.tileLayer('https://wayback-b.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/29260/{z}/{y}/{x}', {
+                    attribution: getText('esri2020Attribution'),
+                    maxZoom: 18,
+                    maxNativeZoom: 17,
+                    tileSize: 256
+                })
+            };
+        }
+        function getOverlayMaps() {
+            return {
+                [getText('forestCoverage')]: L.tileLayer.wms('https://forest-observatory.ec.europa.eu/wms/RMAP', {
+                    layers: 'cover_v2',
+                    format: 'image/png',
+                    transparent: true,
+                    version: '1.3.0',
+                    attribution: getText('gfcAttribution')
+                })
+            };
+        }
+
+        function initializeMap() {
+            map = L.map('map', {
+                center: [0, 0],
+                zoom: 2,
+                zoomControl: true
+            });
+            baseLayers = getBaseLayers();
+            // Add the first base layer to the map
+            const firstBaseLayer = Object.values(baseLayers)[0];
+            firstBaseLayer.addTo(map);
+            currentBaseLayer = firstBaseLayer;
+            polygonLayer = L.layerGroup().addTo(map);
+            pointLayer = L.layerGroup().addTo(map);
+            pointMarkerLayer = L.layerGroup().addTo(map);
+            polygonMarkerLayer = L.layerGroup().addTo(map);
+            initializeDeforestationLayer();
+            const overlayMaps = getOverlayMaps();
+            layerControl = L.control.layers(baseLayers, overlayMaps, { collapsed: false }).addTo(map);
+            document.getElementById('deforestationControls').classList.remove('hidden');
+            document.getElementById('mapLegend').classList.remove('hidden');
+            document.getElementById('controlsToggle').classList.remove('hidden');
+            map.on('zoomend', updateLayersByZoom);
+            map.on('baselayerchange', function(e) {
+                currentBaseLayer = e.layer;
+                ensureTreeLossLayerOnTop();
+            });
+            document.getElementById('controlsToggle').addEventListener('click', function() {
+                const legend = document.getElementById('mapLegend');
+                const controls = document.getElementById('deforestationControls');
+                const button = document.getElementById('controlsToggle');
+                if (legend.classList.contains('hidden')) {
+                    legend.classList.remove('hidden');
+                    controls.classList.remove('hidden');
+                    button.textContent = getText('hideControls');
+                } else {
+                    legend.classList.add('hidden');
+                    controls.classList.add('hidden');
+                    button.textContent = getText('showControls');
+                }
+            });
+        }
+
+        function ensureTreeLossLayerOnTop() {
+            // If treeLossLayer exists and is on the map, remove and re-add to put it on top
+            if (treeLossLayer && map.hasLayer(treeLossLayer)) {
+                treeLossLayer.bringToFront();
+            }
+        }
+
+        function initializeFileUpload() {
+            const dropArea = document.getElementById('fileDropArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileSelectButton = document.getElementById('fileSelectButton');
+            const welcomeOverlay = document.getElementById('welcomeOverlay');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            // File select button click
+            fileSelectButton.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            // File input change event
+            fileInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    handleFile(this.files[0]);
+                }
+            });
+
+            // Drag and drop events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight() {
+                dropArea.classList.add('is-active');
+            }
+
+            function unhighlight() {
+                dropArea.classList.remove('is-active');
+            }
+
+            // Handle dropped file
+            dropArea.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+
+            // Handle the uploaded file
+            function handleFile(file) {
+                // Show loading overlay
+                hideWelcomeOverlay();
+                loadingOverlay.style.display = 'flex';
+                // Initialize the map if not already done
+                if (!map) {
+                    initializeMap();
+                }
+
+                // Read the file
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const geoJSON = JSON.parse(e.target.result);
+                        
+                        // Process GeoJSON data
+                        processGeoJSON(geoJSON);
+
+                        // Hide loading overlay
+                        loadingOverlay.style.display = 'none';
+                    } catch (error) {
+                        console.error('Error processing GeoJSON:', error);
+                        alert(getText('invalidGeoJSON'));
+                        
+                        // Show welcome overlay again on error
+                        showWelcomeOverlay();
+                        loadingOverlay.style.display = 'none';
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function processGeoJSON(geoJSON) {
+            // Store the current GeoJSON data
+            currentGeoJSON = geoJSON;
+            
+            // Clear existing layers
+            polygonLayer.clearLayers();
+            pointLayer.clearLayers();
+            pointMarkerLayer.clearLayers();
+            polygonMarkerLayer.clearLayers();
+            
+            // Calculate bounds to fit the map to the data
+            let bounds = null;
+            
+            // Process each feature in the GeoJSON
+            if (geoJSON.features && geoJSON.features.length > 0) {
+                geoJSON.features.forEach(function(feature) {
+                    // Get feature bounds
+                    const featureBounds = getFeatureBounds(feature);
+                    if (featureBounds) {
+                        if (!bounds) {
+                            bounds = featureBounds;
+                        } else {
+                            bounds.extend(featureBounds);
+                        }
+                    }
+                    
+                    if (feature.geometry) {
+                        // Process based on geometry type
+                        if (feature.geometry.type === 'Point') {
+                            processPointFeature(feature);
+                        } else if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+                            processPolygonFeature(feature);
+                        }
+                    }
+                });
+                
+                // Fit map to data bounds if available
+                if (bounds) {
+                    map.fitBounds(bounds);
+                }
+                
+                // Update layers based on current zoom
+                updateLayersByZoom();
+            }
+            
+            // Make sure tree loss layer stays on top
+            ensureTreeLossLayerOnTop();
+        }
+        
+        function getFeatureBounds(feature) {
+            if (!feature.geometry) return null;
+            
+            if (feature.geometry.type === 'Point') {
+                const coords = feature.geometry.coordinates;
+                const latLng = L.latLng(coords[1], coords[0]);
+                return L.latLngBounds([latLng]);
+            } else if (feature.geometry.type === 'Polygon') {
+                const coords = feature.geometry.coordinates[0];
+                const latLngs = coords.map(coord => L.latLng(coord[1], coord[0]));
+                return L.latLngBounds(latLngs);
+            } else if (feature.geometry.type === 'MultiPolygon') {
+                let allLatLngs = [];
+                feature.geometry.coordinates.forEach(polygon => {
+                    polygon[0].forEach(coord => {
+                        allLatLngs.push(L.latLng(coord[1], coord[0]));
+                    });
+                });
+                return L.latLngBounds(allLatLngs);
+            }
+            
+            return null;
+        }
+        
+        function processPointFeature(feature) {
+            const coords = feature.geometry.coordinates;
+            const latLng = L.latLng(coords[1], coords[0]);
+            
+            // Create a marker for zoom levels <= 15
+            const marker = L.marker(latLng);
+            
+            // Add popup with feature properties
+            const popupContent = createPopupContent(feature.properties);
+            marker.bindPopup(popupContent);
+            
+            // Add marker to the appropriate layer
+            pointMarkerLayer.addLayer(marker);
+            
+            // Create circle representation with accurate area for zoom levels > 15
+            if (feature.properties && feature.properties.Area !== undefined) {
+                // Get the area in hectares
+                const areaHectares = parseFloat(feature.properties.Area);
+                
+                // Create an accurate area circle that will be resized with zoom level
+                const areaCircle = L.circle(latLng, {
+                    className: 'area-circle'
+                });
+                
+                // Store the area in hectares as a property of the circle
+                areaCircle.areaHectares = areaHectares;
+                
+                // Add popup with feature properties
+                areaCircle.bindPopup(popupContent);
+                
+                // Add to the point layer (will be shown at zoom levels > 15)
+                pointLayer.addLayer(areaCircle);
+            }
+        }
+        
+        function processPolygonFeature(feature) {
+            // Create the polygon
+            const geoJSONLayer = L.geoJSON(feature, {
+                style: function() {
+                    return {
+                        fillColor: '#3388ff',
+                        weight: 2,
+                        opacity: 0.8,
+                        color: '#3388ff',
+                        fillOpacity: 0.15
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    // Add popup with feature properties
+                    const popupContent = createPopupContent(feature.properties);
+                    layer.bindPopup(popupContent);
+                }
+            });
+            
+            // Add polygon to the polygon layer
+            polygonLayer.addLayer(geoJSONLayer);
+            
+            // Calculate centroid for marker representation
+            try {
+                let centroid;
+                if (feature.geometry.type === 'Polygon') {
+                    centroid = calculatePolygonCentroid(feature.geometry.coordinates[0]);
+                } else if (feature.geometry.type === 'MultiPolygon') {
+                    // For simplicity, use the first polygon's centroid
+                    centroid = calculatePolygonCentroid(feature.geometry.coordinates[0][0]);
+                }
+                
+                if (centroid) {
+                    // Create a marker at the centroid
+                    const marker = L.marker([centroid[1], centroid[0]]);
+                    
+                    // Add popup with feature properties
+                    const popupContent = createPopupContent(feature.properties);
+                    marker.bindPopup(popupContent);
+                    
+                    // Add to the polygon marker layer
+                    polygonMarkerLayer.addLayer(marker);
+                }
+            } catch (e) {
+                console.error('Error creating centroid:', e);
+            }
+        }
+        
+        function calculatePolygonCentroid(coordinates) {
+            // Simple centroid calculation for a polygon
+            if (!coordinates || coordinates.length === 0) return null;
+            
+            let x = 0;
+            let y = 0;
+            let numPoints = 0;
+            
+            for (let i = 0; i < coordinates.length; i++) {
+                x += coordinates[i][0];
+                y += coordinates[i][1];
+                numPoints++;
+            }
+            
+            return [x / numPoints, y / numPoints];
+        }
+        
+        function createPopupContent(properties) {
+            if (!properties) return getText('noProperties');
+            
+            let content = '<div class="info-box">';
+            content += '<div class="info-title">' + getText('propertiesTitle') + '</div>';
+            content += '<div class="info-content">';
+            
+            // Add each property to the popup
+            for (const key in properties) {
+                if (properties.hasOwnProperty(key)) {
+                    content += `<strong>${key}:</strong> ${properties[key]}<br>`;
+                }
+            }
+            
+            content += '</div></div>';
+            return content;
+        }
+        
+        function updateLayersByZoom() {
+            if (!map) return;
+            
+            const zoom = map.getZoom();
+            
+            // For zoom levels <= 15, show marker representations
+            if (zoom <= 15) {
+                map.removeLayer(polygonLayer);
+                map.removeLayer(pointLayer);
+                
+                if (!map.hasLayer(pointMarkerLayer)) map.addLayer(pointMarkerLayer);
+                if (!map.hasLayer(polygonMarkerLayer)) map.addLayer(polygonMarkerLayer);
+            } 
+            // For zoom levels > 15, show detailed representations
+            else {
+                map.removeLayer(pointMarkerLayer);
+                map.removeLayer(polygonMarkerLayer);
+                
+                if (!map.hasLayer(polygonLayer)) map.addLayer(polygonLayer);
+                if (!map.hasLayer(pointLayer)) map.addLayer(pointLayer);
+                
+                // Update circle radii to represent actual areas in hectares
+                updateCircleRadii();
+            }
+            
+            // Ensure tree loss layer is on top
+            ensureTreeLossLayerOnTop();
+        }
+        
+        function updateCircleRadii() {
+            pointLayer.eachLayer(function(layer) {
+                if (layer.areaHectares !== undefined) {
+                    // Convert hectares to square meters (1 hectare = 10000 square meters)
+                    const areaSquareMeters = layer.areaHectares * 10000;
+                    
+                    // Calculate radius from area: area = π × radius²
+                    // Therefore, radius = sqrt(area / π)
+                    const radius = Math.sqrt(areaSquareMeters / Math.PI);
+                    
+                    // Set the circle radius
+                    layer.setRadius(radius);
+                }
+            });
+        }
+
+        // Global Forest Watch Deforestation Layer Implementation
+        function initializeDeforestationLayer() {
+            // Define the TreeLossLayer class
+            const TreeLossLayer = L.TileLayer.extend({
+				createTile: function(coords, done) {
+					const nativeZoom = 12;
+					const canvas = document.createElement('canvas');
+					const size = this.getTileSize();
+					canvas.width = size.x;
+					canvas.height = size.y;
+					const ctx = canvas.getContext('2d');
+					ctx.imageSmoothingEnabled = false;
+
+					// If we're at or below native zoom, use the tile directly
+					if (coords.z <= nativeZoom) {
+						const img = new Image();
+						img.crossOrigin = 'Anonymous';
+						img.src = `https://tiles.globalforestwatch.org/umd_tree_cover_loss/v1.12/dynamic/${coords.z}/${coords.x}/${coords.y}.png?tree_cover_density_threshold=30`;
+
+						img.onload = () => {
+							// Draw the full image
+							ctx.drawImage(img, 0, 0, size.x, size.y);
+							this.processImageData(ctx, size, done, canvas);
+						};
+
+						img.onerror = (err) => {
+							console.error('Tile load error:', coords, err);
+							done(null, canvas);
+						};
+					} else {
+						// For zoom levels higher than native, we need to scale up from a parent tile
+						const scale = Math.pow(2, coords.z - nativeZoom);
+						const parentX = Math.floor(coords.x / scale);
+						const parentY = Math.floor(coords.y / scale);
+						
+						// Calculate which part of the parent tile we need
+						const xOff = (coords.x % scale) / scale;
+						const yOff = (coords.y % scale) / scale;
+						const tileScale = 1 / scale;
+
+						const img = new Image();
+						img.crossOrigin = 'Anonymous';
+						img.src = `https://tiles.globalforestwatch.org/umd_tree_cover_loss/v1.12/dynamic/${nativeZoom}/${parentX}/${parentY}.png?tree_cover_density_threshold=30`;
+
+						img.onload = () => {
+							// Calculate source rectangle within the parent tile
+							const srcX = xOff * img.width;
+							const srcY = yOff * img.height;
+							const srcWidth = img.width * tileScale;
+							const srcHeight = img.height * tileScale;
+
+							// Draw the appropriate section, scaling it up to fill our canvas
+							ctx.drawImage(
+								img,
+								srcX, srcY, srcWidth, srcHeight,
+								0, 0, size.x, size.y
+							);
+							
+							this.processImageData(ctx, size, done, canvas);
+						};
+
+						img.onerror = (err) => {
+							console.error('Tile load error:', coords, err);
+							done(null, canvas);
+						};
+					}
+
+					return canvas;
+				},
+
+				processImageData: function(ctx, size, done, canvas) {
+					// Process the image data for year filtering
+					const imageData = ctx.getImageData(0, 0, size.x, size.y);
+					const data = imageData.data;
+					
+					for (let i = 0; i < data.length; i += 4) {
+						const red = data[i];
+						const blue = data[i + 2];
+						
+						if (red > 0) {
+							const year = blue;
+							if (activeYears[year]) {
+								const c = this._hexToRgb(getYearColor(year));
+								data[i]     = c.r;
+								data[i + 1] = c.g;
+								data[i + 2] = c.b;
+								data[i + 3] = 200; // Set opacity
+							} else {
+								data[i + 3] = 0; // Make transparent
+							}
+						} else {
+							data[i + 3] = 0; // Make transparent if no loss
+						}
+					}
+					
+					ctx.putImageData(imageData, 0, 0);
+					done(null, canvas);
+				},
+
+				_hexToRgb: function(hex) {
+					hex = hex.replace('#','');
+					return {
+						r: parseInt(hex.slice(0,2), 16),
+						g: parseInt(hex.slice(2,4), 16),
+						b: parseInt(hex.slice(4,6), 16)
+					};
+				}
+			});
+
+
+            // Define color scale for years
+            const getYearColor = function(year) {
+                // A color scale from red to yellow
+                const colors = {
+                    1: '#FFff00',  // 2001
+                    2: '#FFff00',  // 2002
+                    3: '#FFee00',  // 2003
+                    4: '#FFee00',  // 2004
+                    5: '#FFdd00',  // 2005
+                    6: '#FFdd00',  // 2006
+                    7: '#FFcc00',  // 2007
+                    8: '#FFcc00',  // 2008
+                    9: '#FFbb00',  // 2009
+                    10: '#FFbb00', // 2010
+                    11: '#FFaa00', // 2011
+                    12: '#FFaa00', // 2012
+                    13: '#FF9900', // 2013
+                    14: '#FF9900', // 2014
+                    15: '#FF8800', // 2015
+                    16: '#FF8800', // 2016
+                    17: '#FF7700', // 2017
+                    18: '#FF7700', // 2018
+                    19: '#FF6600', // 2019
+                    20: '#FF6600', // 2020
+                    21: '#FF2200', // 2021
+                    22: '#FF1100', // 2022
+                    23: '#FF0800',  // 2023
+					24: '#FF0000' // 2024
+                };
+                
+                return colors[year] || '#FF0000';
+            };
+
+            // Initialize activeYears with years 2021 and later active
+            for (let year = 1; year <= 24; year++) {
+                activeYears[year] = (year >= 21); // Only years 2021+ start active
+            }
+
+            // Create tree loss layer
+            treeLossLayer = new TreeLossLayer({
+                attribution: 'Tree Cover Loss &copy; <a href="https://www.globalforestwatch.org/">Global Forest Watch</a>',
+                tileSize: 256,
+                maxZoom: 19,
+                maxNativeZoom: 12,
+                noWrap: true,
+                zIndex: 1000, // High z-index to keep it on top
+                pane: 'overlayPane' // Use the overlay pane for this layer
+            }).addTo(map);
+
+            // Setup deforestation year controls
+            setupDeforestationControls();
+
+            // Initialize legend
+            updateLegend();
+        }
+
+        function setupDeforestationControls() {
+            // Create buttons for each year
+            const yearButtonsContainer = document.getElementById('year-buttons');
+            for (let year = 1; year <= 24; year++) {
+                const actualYear = 2000 + year;
+                const button = document.createElement('button');
+                button.textContent = actualYear;
+                button.id = `btn-year-${year}`;
+                button.className = activeYears[year] ? 'active' : '';
+                
+                button.addEventListener('click', () => {
+                    // Toggle this year
+                    activeYears[year] = !activeYears[year];
+                    button.className = activeYears[year] ? 'active' : '';
+                    updateDeforestationLayer();
+                });
+                
+                yearButtonsContainer.appendChild(button);
+            }
+            
+            // Handle group control buttons
+            document.getElementById('btn-all-years').addEventListener('click', () => {
+                // Set all years active
+                for (let year = 1; year <= 24; year++) {
+                    activeYears[year] = true;
+                    document.getElementById(`btn-year-${year}`).className = 'active';
+                }
+                
+                // Update button states
+                document.getElementById('btn-all-years').className = 'active';
+                document.getElementById('btn-before-2021').className = '';
+                document.getElementById('btn-2021-onwards').className = '';
+                document.getElementById('btn-clear-all').className = '';
+                
+                updateDeforestationLayer();
+            });
+            
+            document.getElementById('btn-before-2021').addEventListener('click', () => {
+                // Set only pre-2021 years active
+                for (let year = 1; year <= 24; year++) {
+                    activeYears[year] = (year < 21);
+                    document.getElementById(`btn-year-${year}`).className = activeYears[year] ? 'active' : '';
+                }
+                
+                // Update button states
+                document.getElementById('btn-all-years').className = '';
+                document.getElementById('btn-before-2021').className = 'active';
+                document.getElementById('btn-2021-onwards').className = '';
+                document.getElementById('btn-clear-all').className = '';
+                
+                updateDeforestationLayer();
+            });
+            
+            document.getElementById('btn-2021-onwards').addEventListener('click', () => {
+                // Set only 2021+ years active
+                for (let year = 1; year <= 24; year++) {
+                    activeYears[year] = (year >= 21);
+                    document.getElementById(`btn-year-${year}`).className = activeYears[year] ? 'active' : '';
+                }
+                
+                // Update button states
+                document.getElementById('btn-all-years').className = '';
+                document.getElementById('btn-before-2021').className = '';
+                document.getElementById('btn-2021-onwards').className = 'active';
+                document.getElementById('btn-clear-all').className = '';
+                
+                updateDeforestationLayer();
+            });
+            
+            document.getElementById('btn-clear-all').addEventListener('click', () => {
+                // Clear all years
+                for (let year = 1; year <= 24; year++) {
+                    activeYears[year] = false;
+                    document.getElementById(`btn-year-${year}`).className = '';
+                }
+                
+                // Update button states
+                document.getElementById('btn-all-years').className = '';
+                document.getElementById('btn-before-2021').className = '';
+                document.getElementById('btn-2021-onwards').className = '';
+                document.getElementById('btn-clear-all').className = 'active';
+                
+                updateDeforestationLayer();
+            });
+        }
+
+        function updateDeforestationLayer() {
+            // Force a reload of the layer by removing and re-adding it
+            if (map.hasLayer(treeLossLayer)) {
+                map.removeLayer(treeLossLayer);
+            }
+            
+            // Add it back
+            treeLossLayer.addTo(map);
+            
+            // Update the legend
+            updateLegend();
+            
+            // Ensure it stays on top
+            ensureTreeLossLayerOnTop();
+        }
+
+        // Update legend based on active years
+        function updateLegend() {
+            const legendItems = document.getElementById('legend-items');
+            
+            // Clear existing legend items
+            legendItems.innerHTML = '';
+            
+            // Add polygon legend item
+            const polygonLegendItem = document.createElement('div');
+            polygonLegendItem.className = 'legend-item';
+            
+            const polygonColorBox = document.createElement('div');
+            polygonColorBox.className = 'legend-color';
+            polygonColorBox.style.border = '2px solid #3388ff';
+            polygonColorBox.style.backgroundColor = 'transparent';
+            
+            const polygonLabel = document.createElement('span');
+            polygonLabel.textContent = getText('plotBoundary');
+            
+            polygonLegendItem.appendChild(polygonColorBox);
+            polygonLegendItem.appendChild(polygonLabel);
+            legendItems.appendChild(polygonLegendItem);
+            
+            // Add active years to the legend
+            for (let year = 1; year <= 24; year++) {
+                if (activeYears[year]) {
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    
+                    const colorBox = document.createElement('div');
+                    colorBox.className = 'legend-color';
+                    colorBox.style.backgroundColor = getYearColor(year);
+                    
+                    const label = document.createElement('span');
+                    label.textContent = getText('treeCoverLoss', 2000 + year);
+                    
+                    legendItem.appendChild(colorBox);
+                    legendItem.appendChild(label);
+                    legendItems.appendChild(legendItem);
+                }
+            }
+        }
+        
+        // Color function for deforestation years
+        function getYearColor(year) {
+            // A color scale from red to yellow to green to blue
+            const colors = {
+                    1: '#FFff00',  // 2001
+                    2: '#FFff00',  // 2002
+                    3: '#FFee00',  // 2003
+                    4: '#FFee00',  // 2004
+                    5: '#FFdd00',  // 2005
+                    6: '#FFdd00',  // 2006
+                    7: '#FFcc00',  // 2007
+                    8: '#FFcc00',  // 2008
+                    9: '#FFbb00',  // 2009
+                    10: '#FFbb00', // 2010
+                    11: '#FFaa00', // 2011
+                    12: '#FFaa00', // 2012
+                    13: '#FF9900', // 2013
+                    14: '#FF9900', // 2014
+                    15: '#FF8800', // 2015
+                    16: '#FF8800', // 2016
+                    17: '#FF7700', // 2017
+                    18: '#FF7700', // 2018
+                    19: '#FF6600', // 2019
+                    20: '#FF6600', // 2020
+                    21: '#FF2200', // 2021
+                    22: '#FF1100', // 2022
+                    23: '#FF0800',  // 2023
+					24: '#FF0000' // 2024
+            };
+            
+            return colors[year] || '#FF0000';
+        }
+
+        // Translation logic (copied and adapted from KML)
+        let currentLanguage = 'en';
+        let translations = {};
+        function initializeTranslations() {
+            translations.en = JSON.parse(document.getElementById('lang-en').textContent);
+            translations.es = JSON.parse(document.getElementById('lang-es').textContent);
+            translations.fr = JSON.parse(document.getElementById('lang-fr').textContent);
+            translations.pt = JSON.parse(document.getElementById('lang-pt').textContent);
+            translations.sw = JSON.parse(document.getElementById('lang-sw').textContent);
+            translations.zh = JSON.parse(document.getElementById('lang-zh').textContent);
+            translations.th = JSON.parse(document.getElementById('lang-th').textContent);
+            translations.am = JSON.parse(document.getElementById('lang-am').textContent);
+        }
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            localStorage.setItem('georoots-mapper-language', lang);
+            document.documentElement.lang = lang;
+            updateAllText();
+            // Update layer control names if map is initialized
+            if (typeof map !== 'undefined' && map) {
+                if (layerControl) {
+                    layerControl.remove();
+                }
+                // Remove all base layers from map
+                Object.values(baseLayers).forEach(layer => {
+                    if (map.hasLayer(layer)) map.removeLayer(layer);
+                });
+                baseLayers = getBaseLayers();
+                // Add the first base layer back to the map if not present
+                const firstBaseLayer = Object.values(baseLayers)[0];
+                if (!map.hasLayer(firstBaseLayer)) firstBaseLayer.addTo(map);
+                currentBaseLayer = firstBaseLayer;
+                const overlayMaps = getOverlayMaps();
+                layerControl = L.control.layers(baseLayers, overlayMaps, { collapsed: false }).addTo(map);
+            }
+        }
+        function updateAllText() {
+            const elements = document.querySelectorAll('[data-i18n]');
+            elements.forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                const translation = translations[currentLanguage][key];
+                if (translation) {
+                    element.textContent = translation;
+                }
+            });
+        }
+        function getText(key, param) {
+            let t = translations[currentLanguage][key] || translations.en[key] || key;
+            if (param) t = t.replace('{year}', param);
+            return t;
+        }
+    </script>
+</body>
+</html>
