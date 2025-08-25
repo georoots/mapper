@@ -22,7 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoRoots Mapper - Deforestation Visualization</title>
+    <title>Mapper - GeoRoots</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
     <style>
         * {
@@ -31,9 +31,59 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             box-sizing: border-box;
         }
 
+        /* CSS Variables for consistent color scheme */
+        :root {
+            --primary-color: #1b4332;
+            --secondary-color: #40916c;
+            --accent-color: #efffef;
+            --dark-color: #1b4332;
+            --light-color: #f8f9fa;
+            --danger-color: #dc6575;
+            --confirm-color: #40916c;
+            --text-color: #333;
+            --border-color: #e9ecef;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            
+            /* Gray Scale */
+            --gray-light: #f1f4f2;
+            --gray-medium: #6c757d;
+            --gray-dark: #495057;
+            --gray-border: #e9ecef;
+            --gray-input: #ddd;
+            
+            /* Basic Colors */
+            --white: #ffffff;
+            --black: #000000;
+            
+            /* Status Colors */
+            --error-bg: #f8d7da;
+            --error-border: #f5c6cb;
+            --error-text: #721c24;
+            --success-bg: #d4edda;
+            --success-border: #c3e6cb;
+            --success-text: #155724;
+            --warning-bg: #fff3cd;
+            --warning-border: #ffeaa7;
+            --warning-text: #856404;
+            
+            /* Overlay and UI Colors */
+            --modal-overlay: rgba(0, 0, 0, 0.7);
+            --loading-overlay: rgba(0, 0, 0, 0.6);
+            --spinner-bg: #f3f3f3;
+            
+            /* Hover States */
+            --danger-hover: #d14a5a;
+            --success-hover: #4a9f6b;
+            --secondary-hover: #2d5a3d;
+            
+            /* Special Elements */
+            --drop-border: #ccc;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            background: var(--light-color);
             min-height: 100vh;
             overflow: hidden;
         }
@@ -60,48 +110,49 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
         .welcome-container {
             max-width: 800px;
-            background: white;
+            background: var(--white);
             border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 60px var(--shadow-color);
             overflow: hidden;
             margin: 20px;
         }
 
         .welcome-header {
-            background: linear-gradient(135deg, #999 0%, #888 100%);
-            color: white;
+            background: var(--secondary-color);
+            color: var(--white);
             padding: 30px;
             text-align: center;
             position: relative;
         }
 
         .language-selector {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin-bottom: 20px;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-
-        .language-selector:hover {
-            background: rgba(255, 255, 255, 0.25);
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .language-selector select {
+            padding: 8px 12px;
             border: none;
-            background: transparent;
-            font-size: 14px;
-            font-weight: 600;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.2);
             color: white;
+            font-size: 14px;
             cursor: pointer;
-            outline: none;
+            backdrop-filter: blur(10px);
         }
 
         .language-selector select option {
-            background: #666;
-            color: white;
+            background: var(--white);
+            color: var(--text-color);
+        }
+
+        .language-selector label {
+            font-size: 14px;
+            opacity: 0.9;
         }
 
         .welcome-header h1 {
@@ -116,15 +167,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             margin-bottom: 5px;
         }
 
-        .welcome-header .text-license {
-            font-weight: 400;
-            font-size: 0.9rem;
-            opacity: 0.8;
+        .welcome-header .small-print {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 8px;
+            line-height: 1.3;
         }
 
-        .welcome-header .text-license a {
-            color: white;
-            text-decoration: none;
+        .welcome-header .small-print a {
+            color: var(--white);
+            transition: color 0.3s ease;
         }
 
         .welcome-content {
@@ -133,7 +185,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
         .welcome-content > p {
             font-size: 1.1rem;
-            color: #6c757d;
+            color: var(--gray-medium);
             margin-bottom: 15px;
             text-align: center;
         }
@@ -141,7 +193,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         .file-drop-area {
             width: 100%;
             height: 280px;
-            border: 3px dashed #ccc;
+            border: 3px dashed var(--drop-border);
             border-radius: 10px;
             display: flex;
             flex-direction: column;
@@ -150,17 +202,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             margin: 20px 0;
             padding: 20px;
             transition: all 0.3s ease;
-            background-color: #f8f9fa;
+            background-color: var(--gray-light);
         }
 
         .file-drop-area.is-active {
-            border-color: #007bff;
-            background-color: rgba(0, 123, 255, 0.1);
+            border-color: var(--confirm-color);
+            background-color: rgba(64, 145, 108, 0.1);
         }
 
         .upload-icon {
             font-size: 3rem;
-            color: #6c757d;
+            color: var(--gray-medium);
             margin-bottom: 1rem;
             width: 48px;
             height: 48px;
@@ -171,19 +223,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
         .file-drop-area p {
             font-size: 1.1rem;
-            color: #495057;
+            color: var(--gray-dark);
             margin-bottom: 10px;
         }
 
         .file-drop-area .or-text {
             font-size: 0.9rem;
-            color: #6c757d;
+            color: var(--gray-medium);
             margin-bottom: 15px;
         }
 
         .upload-button {
-            background: #007bff;
-            color: white;
+            background: var(--confirm-color);
+            color: var(--white);
             border: none;
             padding: 12px 24px;
             border-radius: 8px;
@@ -197,19 +249,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         }
 
         .upload-button:hover {
-            background: #0056b3;
+            background: var(--success-hover);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(64, 145, 108, 0.3);
         }
 
-        .welcome-footer {
-            padding: 20px 30px;
-            background: #f8f9fa;
-            border-top: 1px solid #e9ecef;
-            color: #6c757d;
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
+
 
         .loading-overlay {
             position: fixed;
@@ -217,13 +262,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--loading-overlay);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 999;
             flex-direction: column;
-            color: white;
+            color: var(--white);
         }
 
         .loading-overlay.show {
@@ -231,8 +276,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         }
 
         .loading-spinner {
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid #007bff;
+            border: 8px solid var(--spinner-bg);
+            border-top: 8px solid var(--confirm-color);
             border-radius: 50%;
             width: 60px;
             height: 60px;
@@ -256,9 +301,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
         .info-box {
             padding: 10px;
-            background-color: white;
+            background-color: var(--white);
             border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            box-shadow: 0 0 10px var(--shadow-color);
             max-width: 300px;
         }
 
@@ -289,19 +334,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             padding: 15px;
             border-radius: 8px;
             z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 12px var(--shadow-color);
             max-width: 280px;
         }
 
         .year-controls h3 {
             margin-bottom: 15px;
-            color: #495057;
+            color: var(--gray-dark);
             font-size: 1.1rem;
         }
 
         .year-controls h4 {
             margin-bottom: 10px;
-            color: #495057;
+            color: var(--gray-dark);
             font-size: 0.9rem;
             font-weight: 600;
         }
@@ -311,9 +356,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         }
 
         .control-group button {
-            background: #f0f0f0;
-            color: #495057;
-            border: 1px solid #dee2e6;
+            background: var(--gray-light);
+            color: var(--gray-dark);
+            border: 1px solid var(--gray-border);
             padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
@@ -325,20 +370,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         }
 
         .control-group button:hover {
-            background: #e9ecef;
+            background: var(--gray-border);
             transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px var(--shadow-color);
         }
 
         .control-group button.active {
-            background: #28a745;
-            color: white;
-            border-color: #28a745;
+            background: var(--confirm-color);
+            color: var(--white);
+            border-color: var(--confirm-color);
         }
 
         .control-group button.active:hover {
-            background: #218838;
-            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+            background: var(--success-hover);
+            box-shadow: 0 2px 8px rgba(64, 145, 108, 0.3);
         }
 
         .legend {
@@ -349,13 +394,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             padding: 15px;
             border-radius: 8px;
             z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 12px var(--shadow-color);
             max-width: 250px;
         }
 
         .legend h4 {
             margin-bottom: 10px;
-            color: #495057;
+            color: var(--gray-dark);
             font-size: 1.1rem;
         }
 
@@ -375,8 +420,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         #year-buttons button {
             padding: 6px 8px;
             margin: 2px;
-            background-color: #f0f0f0;
-            border: 1px solid #dee2e6;
+            background-color: var(--gray-light);
+            border: 1px solid var(--gray-border);
             border-radius: 4px;
             font-size: 12px;
             cursor: pointer;
@@ -384,14 +429,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         }
 
         #year-buttons button:hover {
-            background-color: #e9ecef;
+            background-color: var(--gray-border);
             transform: translateY(-1px);
         }
 
         #year-buttons button.active {
-            background-color: #28a745;
-            color: white;
-            border-color: #28a745;
+            background-color: var(--confirm-color);
+            color: var(--white);
+            border-color: var(--confirm-color);
         }
 
         .controls-toggle {
@@ -400,8 +445,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
-            background: #007bff;
-            color: white;
+            background: var(--confirm-color);
+            color: var(--white);
             border: none;
             padding: 10px 20px;
             border-radius: 6px;
@@ -412,12 +457,31 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         }
 
         .controls-toggle:hover {
-            background: #0056b3;
+            background: var(--success-hover);
             transform: translateX(-50%) translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(64, 145, 108, 0.3);
         }
 
-        /* Mobile responsive */
+        /* Large screens */
+        @media (min-width: 1200px) {
+            .welcome-container {
+                max-width: 900px;
+            }
+        }
+
+        /* Medium screens */
+        @media (max-width: 1024px) {
+            .welcome-container {
+                max-width: 700px;
+                margin: 15px;
+            }
+            
+            .welcome-header h1 {
+                font-size: 2.2rem;
+            }
+        }
+
+        /* Small screens */
         @media (max-width: 768px) {
             .welcome-header h1 {
                 font-size: 2rem;
@@ -431,9 +495,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             .welcome-content {
                 padding: 20px;
             }
+
+            .language-selector {
+                position: static;
+                justify-content: center;
+                margin-bottom: 15px;
+            }
             
             .file-drop-area {
                 height: 200px;
+                min-height: 44px;
+            }
+            
+            .upload-button {
+                min-height: 44px;
             }
             
             .year-controls {
@@ -446,6 +521,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 padding: 10px;
             }
         }
+
+        /* Very small screens */
+        @media (max-width: 480px) {
+            .welcome-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .welcome-header,
+            .welcome-content {
+                padding: 15px;
+            }
+            
+            .file-drop-area {
+                height: 180px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -453,7 +544,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <div id="welcomeOverlay" class="welcome-overlay">
         <div class="welcome-container">
             <div class="welcome-header">
-                <div class="language-selector">
+                <div class="language-selector">                    
+                    <label for="languageSelect" aria-label="Select language">🌐</label>
                     <select id="languageSelect" onchange="changeLanguage(this.value)">
                         <option value="en">English</option>
                         <option value="es">Español</option>
@@ -466,12 +558,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                     </select>
                 </div>
                 <h1 data-i18n="title">GeoRoots Mapper</h1>
-                <p><span data-i18n="downloadText">Download latest version and other tools on</span> <a href="https://georoots.coffee/">https://georoots.coffee/</a></p>
-                <p class="text-license" data-i18n="licenseText">This software is free, released under GPLv3 open source license, see source code for full disclaimer.</p>
+                <p data-i18n="subtitle">This is a simple tool for visual inspection of EU Deforestation Regulation DDS files.</p>
+                <p data-i18n="privacyText" class="small-print">Your file and any of its content is only processed locally in your browser and none of your information is sent to GeoRoots, the map providers or anyone else.</p>
+                <p data-i18n="licenseText" class="small-print">This software is free, released under GPLv3 open source license, see source code for full disclaimer.</p>
+                <p class="small-print"><span data-i18n="downloadText">Download latest version and other tools on</span> <a href="https://georoots.eu/">https://georoots.eu/</a></p>
             </div>
             <div class="welcome-content">
-                <p data-i18n="subtitle">This is a simple tool for visual inspection of EU Deforestation Regulation DDS files.</p>
-                <p data-i18n="uploadInfo">Your provided GeoJSON file will be displayed on a map together with deforestation overlay.</p>
                 <div id="fileDropArea" class="file-drop-area">
                     <div class="upload-icon">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
@@ -485,9 +577,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                     <button id="fileSelectButton" class="upload-button" data-i18n="selectGeoJSONButton">Select GeoJSON File</button>
                 </div>
             </div>
-            <div class="welcome-footer">
-                <p data-i18n="privacyText">Your file and any of its content is only processed locally in your browser and none of your information is sent to GeoRoots, the map providers or anyone else.</p>
-            </div>
+
         </div>
     </div>
 
@@ -500,9 +590,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <!-- Controls Toggle Button -->
     <button id="controlsToggle" class="controls-toggle hidden" data-i18n="hideControls">Hide Controls</button>
 
-    <!-- Deforestation Controls -->
+    <!-- Tree Loss Controls -->
     <div id="deforestationControls" class="year-controls hidden">
-        <h3 data-i18n="deforestationControlsTitle">Deforestation Year Controls</h3>
+        <h3 data-i18n="deforestationControlsTitle">Tree Loss Controls</h3>
         <div class="control-group">
             <h4 data-i18n="timePeriods">Time Periods:</h4>
             <button id="btn-all-years" data-i18n="allYears">All Years</button>
@@ -529,10 +619,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <script type="application/json" id="lang-en">
     {
         "title": "GeoRoots Mapper",
-        "pageTitle": "GeoRoots Mapper - Deforestation Visualization",
+        "pageTitle": "GeoRoots Mapper - Tree Loss Visualization",
         "downloadText": "Download latest version and other tools on",
         "subtitle": "This is a simple tool for visual inspection of EU Deforestation Regulation DDS files.",
-        "uploadInfo": "Your provided GeoJSON file will be displayed on a map together with deforestation overlay.",
+        "uploadInfo": "Your provided GeoJSON file will be displayed on a map together with tree loss overlay.",
         "uploadText": "Drag & drop your GeoJSON file here",
         "orText": "or",
         "selectGeoJSONButton": "Select GeoJSON File",
@@ -541,7 +631,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "processingText": "Processing GeoJSON data...",
         "hideControls": "Hide Controls",
         "showControls": "Show Controls",
-        "deforestationControlsTitle": "Deforestation Year Controls",
+        "deforestationControlsTitle": "Tree Loss Controls",
         "timePeriods": "Time Periods:",
         "allYears": "All Years",
         "before2021": "Before 2021",
@@ -568,10 +658,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <script type="application/json" id="lang-es">
     {
         "title": "GeoRoots Mapper",
-        "pageTitle": "GeoRoots Mapper - Visualización de Deforestación",
+        "pageTitle": "GeoRoots Mapper - Visualización de Pérdida de Árboles",
         "downloadText": "Descarga la versión más reciente y otras herramientas en",
         "subtitle": "Esta es una herramienta simple para la inspección visual de archivos DDS del Reglamento de Deforestación de la UE.",
-        "uploadInfo": "Tu archivo GeoJSON se mostrará en un mapa junto con la superposición de deforestación.",
+        "uploadInfo": "Tu archivo GeoJSON se mostrará en un mapa junto con la superposición de pérdida de árboles.",
         "uploadText": "Arrastra y suelta tu archivo GeoJSON aquí",
         "orText": "o",
         "selectGeoJSONButton": "Seleccionar archivo GeoJSON",
@@ -580,7 +670,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "processingText": "Procesando datos GeoJSON...",
         "hideControls": "Ocultar controles",
         "showControls": "Mostrar controles",
-        "deforestationControlsTitle": "Controles de año de deforestación",
+        "deforestationControlsTitle": "Controles de Pérdida de Árboles",
         "timePeriods": "Períodos de tiempo:",
         "allYears": "Todos los años",
         "before2021": "Antes de 2021",
@@ -607,10 +697,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <script type="application/json" id="lang-fr">
     {
         "title": "GeoRoots Mapper",
-        "pageTitle": "GeoRoots Mapper - Visualisation de la déforestation",
+        "pageTitle": "GeoRoots Mapper - Visualisation de la perte d'arbres",
         "downloadText": "Téléchargez la dernière version et d'autres outils sur",
         "subtitle": "Ceci est un outil simple pour l'inspection visuelle des fichiers DDS du règlement européen sur la déforestation.",
-        "uploadInfo": "Votre fichier GeoJSON sera affiché sur une carte avec la superposition de la déforestation.",
+        "uploadInfo": "Votre fichier GeoJSON sera affiché sur une carte avec la superposition de la perte d'arbres.",
         "uploadText": "Glissez-déposez votre fichier GeoJSON ici",
         "orText": "ou",
         "selectGeoJSONButton": "Sélectionner un fichier GeoJSON",
@@ -619,7 +709,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "processingText": "Traitement des données GeoJSON...",
         "hideControls": "Masquer les contrôles",
         "showControls": "Afficher les contrôles",
-        "deforestationControlsTitle": "Contrôles de l'année de déforestation",
+        "deforestationControlsTitle": "Contrôles de la perte d'arbres",
         "timePeriods": "Périodes de temps :",
         "allYears": "Toutes les années",
         "before2021": "Avant 2021",
@@ -646,10 +736,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <script type="application/json" id="lang-pt">
     {
         "title": "GeoRoots Mapper",
-        "pageTitle": "GeoRoots Mapper - Visualização de Desmatamento",
+        "pageTitle": "GeoRoots Mapper - Visualização de Perda de Árvores",
         "downloadText": "Baixe a versão mais recente e outras ferramentas em",
         "subtitle": "Esta é uma ferramenta simples para inspeção visual de arquivos DDS do Regulamento de Desmatamento da UE.",
-        "uploadInfo": "Seu arquivo GeoJSON será exibido em um mapa junto com a sobreposição de desmatamento.",
+        "uploadInfo": "Seu arquivo GeoJSON será exibido em um mapa junto com a sobreposição de perda de árvores.",
         "uploadText": "Arraste e solte seu arquivo GeoJSON aqui",
         "orText": "ou",
         "selectGeoJSONButton": "Selecionar arquivo GeoJSON",
@@ -658,7 +748,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "processingText": "Processando dados GeoJSON...",
         "hideControls": "Ocultar controles",
         "showControls": "Mostrar controles",
-        "deforestationControlsTitle": "Controles de ano de desmatamento",
+        "deforestationControlsTitle": "Controles de Perda de Árvores",
         "timePeriods": "Períodos de tempo:",
         "allYears": "Todos os anos",
         "before2021": "Antes de 2021",
@@ -685,10 +775,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <script type="application/json" id="lang-sw">
     {
         "title": "GeoRoots Mapper",
-        "pageTitle": "GeoRoots Mapper - Taswira ya Ukataji Miti",
+        "pageTitle": "GeoRoots Mapper - Taswira ya Upotevu wa Miti",
         "downloadText": "Pakua toleo la hivi karibuni na zana nyingine katika",
         "subtitle": "Hii ni zana rahisi kwa ukaguzi wa macho wa faili za DDS za Udhibiti wa Ukataji Miti wa EU.",
-        "uploadInfo": "Faili yako ya GeoJSON itaonyeshwa kwenye ramani pamoja na tabaka la ukataji miti.",
+        "uploadInfo": "Faili yako ya GeoJSON itaonyeshwa kwenye ramani pamoja na tabaka la upotevu wa miti.",
         "uploadText": "Buruta na udondoshe faili lako la GeoJSON hapa",
         "orText": "au",
         "selectGeoJSONButton": "Chagua Faili ya GeoJSON",
@@ -697,7 +787,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "processingText": "Inachakata data ya GeoJSON...",
         "hideControls": "Ficha vidhibiti",
         "showControls": "Onyesha vidhibiti",
-        "deforestationControlsTitle": "Vidhibiti vya Mwaka wa Ukataji Miti",
+        "deforestationControlsTitle": "Vidhibiti vya Upotevu wa Miti",
         "timePeriods": "Vipindi vya muda:",
         "allYears": "Miaka yote",
         "before2021": "Kabla ya 2021",
@@ -724,10 +814,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <script type="application/json" id="lang-zh">
     {
         "title": "GeoRoots Mapper",
-        "pageTitle": "GeoRoots Mapper - 森林砍伐可视化",
+        "pageTitle": "GeoRoots Mapper - 树木损失可视化",
         "downloadText": "在此下载最新版本及其它工具",
         "subtitle": "这是一个用于可视化检查欧盟森林砍伐法规 DDS 文件的简单工具。",
-        "uploadInfo": "您提供的 GeoJSON 文件将与森林砍伐叠加层一起显示在地图上。",
+        "uploadInfo": "您提供的 GeoJSON 文件将与树木损失叠加层一起显示在地图上。",
         "uploadText": "将您的 GeoJSON 文件拖放到此处",
         "orText": "或",
         "selectGeoJSONButton": "选择 GeoJSON 文件",
@@ -736,7 +826,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "processingText": "正在处理 GeoJSON 数据...",
         "hideControls": "隐藏控件",
         "showControls": "显示控件",
-        "deforestationControlsTitle": "森林砍伐年份控制",
+        "deforestationControlsTitle": "树木损失控制",
         "timePeriods": "时间段：",
         "allYears": "所有年份",
         "before2021": "2021 年之前",
@@ -763,10 +853,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <script type="application/json" id="lang-th">
     {
         "title": "GeoRoots Mapper",
-        "pageTitle": "GeoRoots Mapper - การแสดงภาพการตัดไม้ทำลายป่า",
+        "pageTitle": "GeoRoots Mapper - การแสดงภาพการสูญเสียต้นไม้",
         "downloadText": "ดาวน์โหลดเวอร์ชันล่าสุดและเครื่องมืออื่น ๆ ได้ที่",
         "subtitle": "นี่คือเครื่องมือที่เรียบง่ายสำหรับการตรวจสอบไฟล์ DDS ของระเบียบการตัดไม้ทำลายป่าของสหภาพยุโรป",
-        "uploadInfo": "ไฟล์ GeoJSON ที่คุณให้มาจะแสดงบนแผนที่พร้อมกับชั้นข้อมูลการตัดไม้ทำลายป่า",
+        "uploadInfo": "ไฟล์ GeoJSON ที่คุณให้มาจะแสดงบนแผนที่พร้อมกับชั้นข้อมูลการสูญเสียต้นไม้",
         "uploadText": "ลากและวางไฟล์ GeoJSON ของคุณที่นี่",
         "orText": "หรือ",
         "selectGeoJSONButton": "เลือกไฟล์ GeoJSON",
@@ -775,7 +865,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "processingText": "กำลังประมวลผลข้อมูล GeoJSON...",
         "hideControls": "ซ่อนตัวควบคุม",
         "showControls": "แสดงตัวควบคุม",
-        "deforestationControlsTitle": "ตัวควบคุมปีการตัดไม้ทำลายป่า",
+        "deforestationControlsTitle": "ตัวควบคุมการสูญเสียต้นไม้",
         "timePeriods": "ช่วงเวลา:",
         "allYears": "ทุกปี",
         "before2021": "ก่อน 2021",
@@ -802,10 +892,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <script type="application/json" id="lang-am">
     {
         "title": "GeoRoots Mapper",
-        "pageTitle": "GeoRoots Mapper - የደን ማጥፋት ማሳያ",
+        "pageTitle": "GeoRoots Mapper - የዛፎች ኪሳራ ማሳያ",
         "downloadText": "የቅርብ ስሪትን እና ሌሎች መሳሪያዎችን ያውርዱ",
         "subtitle": "ይህ ቀላል መሳሪያ ነው ለአውሮፓ ህብረት የደን ማጥፋት ደንብ DDS ፋይሎች ለማየት።",
-        "uploadInfo": "የቀረበው GeoJSON ፋይል በካርታ ላይ ከደን ማጥፋት አካባቢ ጋር ይታያል።",
+        "uploadInfo": "የቀረበው GeoJSON ፋይል በካርታ ላይ ከዛፎች ኪሳራ አካባቢ ጋር ይታያል።",
         "uploadText": "የGeoJSON ፋይልዎን እዚህ ይጎትቱ እና ይጨምሩ",
         "orText": "ወይም",
         "selectGeoJSONButton": "GeoJSON ፋይል ይምረጡ",
@@ -814,7 +904,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "processingText": "GeoJSON ዳታን በማስተናገድ ላይ...",
         "hideControls": "መቆጣጠሪያዎቹን ደብቅ",
         "showControls": "መቆጣጠሪያዎቹን አሳይ",
-        "deforestationControlsTitle": "የደን ማጥፋት ዓመት መቆጣጠሪያዎች",
+        "deforestationControlsTitle": "የዛፎች ኪሳራ መቆጣጠሪያዎች",
         "timePeriods": "የጊዜ ጊዜዎች:",
         "allYears": "ሁሉም ዓመታት",
         "before2021": "ከ2021 በፊት",
@@ -855,8 +945,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         let currentBaseLayer;
         let satelliteTooltip;
         
-        // Initialize the map when the DOM is ready
+        // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
             initializeTranslations();
             const savedLanguage = localStorage.getItem('georoots-mapper-language');
             const browserLanguage = navigator.language.split('-')[0];
@@ -865,7 +959,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             changeLanguage(defaultLanguage);
             showWelcomeOverlay();
             initializeFileUpload();
-        });
+        }
 
         function showWelcomeOverlay() {
             document.getElementById('welcomeOverlay').style.display = 'flex';
@@ -884,6 +978,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 }),
                 [getText('topoMap')]: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                     maxZoom: 18,
+                    maxNativeZoom: 15,
                     attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
                 }),
                 [getText('satelliteLatest')]: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -1244,6 +1339,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             
             const zoom = map.getZoom();
             
+            // Handle TreeLossLayer visibility based on zoom level
+            if (treeLossLayer) {
+                if (zoom >= 4 && !map.hasLayer(treeLossLayer)) {
+                    treeLossLayer.addTo(map);
+                } else if (zoom < 4 && map.hasLayer(treeLossLayer)) {
+                    map.removeLayer(treeLossLayer);
+                }
+            }
+            
             // For zoom levels <= 15, show marker representations
             if (zoom <= 15) {
                 map.removeLayer(polygonLayer);
@@ -1432,16 +1536,27 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 activeYears[year] = (year >= 21); // Only years 2021+ start active
             }
 
-            // Create tree loss layer
-            treeLossLayer = new TreeLossLayer({
-                attribution: 'Tree Cover Loss &copy; <a href="https://www.globalforestwatch.org/">Global Forest Watch</a>',
-                tileSize: 256,
-                maxZoom: 19,
-                maxNativeZoom: 12,
-                noWrap: true,
-                zIndex: 1000, // High z-index to keep it on top
-                pane: 'overlayPane' // Use the overlay pane for this layer
-            }).addTo(map);
+                         // Create tree loss layer
+             treeLossLayer = new TreeLossLayer({
+                 attribution: '<a href="https://www.globalforestwatch.org/blog/data-and-tools/2024-tree-cover-loss-data-explained/">Global Forest Watch | UMD GFC v1.12</a>',
+                 tileSize: 256,
+                 minZoom: 3,
+                 maxZoom: 19,
+                 maxNativeZoom: 12,
+                 noWrap: true,
+                 zIndex: 1000, // High z-index to keep it on top
+                 pane: 'overlayPane' // Use the overlay pane for this layer
+             });
+             
+             // Only add to map if current zoom is >= minZoom
+             if (map.getZoom() >= 3) {
+                 treeLossLayer.addTo(map);
+             }
+
+            // Manually add attribution to the map's attribution control
+            if (map.attributionControl) {
+                map.attributionControl.addAttribution('<a href="https://www.globalforestwatch.org/blog/data-and-tools/2024-tree-cover-loss-data-explained/">Global Forest Watch | UMD GFC v1.12</a>');
+            }
 
             // Setup deforestation year controls
             setupDeforestationControls();
