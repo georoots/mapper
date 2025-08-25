@@ -30,7 +30,7 @@ A: In general it is not. Point locations can have different shapes and the drawn
 
 ## About GeoRoots: Open Source Coffee Industry Tools for EUDR Compliance and geo traceability
 
-GeoRoots is a collection of minimalistic, open-source tools designed specifically for the coffee industry to meet EU Deforestation Regulation (EUDR) requirements and enhance geo traceability.
+GeoRoots is a collection of minimalistic, open-source tools designed specifically for EU Deforestation Regulation (EUDR) requirements and enhancing geo traceability.
 
 Our philosophy is simple: provide useful tools that respect your privacy, work offline (where possible), and require no complex setup or subscription fees. Every tool runs entirely in your browser and can be downloaded for offline use.
 
@@ -43,9 +43,9 @@ Our philosophy is simple: provide useful tools that respect your privacy, work o
 
 ### Perfect for:
 
-*   Coffee producers and cooperatives
-*   Smaller coffee traders and exporters
-*   Coffee roasters and importers
+*   Producers and cooperatives
+*   Smaller traders and exporters
+*   Importers, operators
 *   Sustainability consultants
 
 ### Useful Resources
