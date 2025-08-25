@@ -28,7 +28,7 @@ A: EU is aware of the errors and inaccuracies in the GFC2020v2 dataset and there
 A: In general it is not. Point locations can have different shapes and the drawn circles are just for indicative purposes only. But many circles on top of each other might indicate issues with the data collection.
 
 
-## About GeoRoots: Open Source Coffee Industry Tools for EUDR Compliance and geo traceability
+## About GeoRoots: Open Source Toolkit for EUDR Compliance and geo traceability
 
 GeoRoots is a collection of minimalistic, open-source tools designed specifically for EU Deforestation Regulation (EUDR) requirements and enhancing geo traceability.
 
