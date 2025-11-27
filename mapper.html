@@ -22,8 +22,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Mapper - GeoRoots</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
     <style>
         * {
             margin: 0;
@@ -299,11 +304,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             display: none;
         }
 
+        /* Remove focus outline from map container */
+        #map:focus {
+            outline: none;
+        }
+
         .info-box {
             padding: 10px;
             background-color: var(--white);
             border-radius: 5px;
-            box-shadow: 0 0 10px var(--shadow-color);
             max-width: 300px;
         }
 
@@ -316,6 +325,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
         .info-content {
             font-size: 14px;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .info-content a {
+            color: var(--secondary-color);
+            text-decoration: underline;
+            transition: color 0.2s ease;
+        }
+
+        .info-content a:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        .info-content a:visited {
+            color: #2d6b4f;
         }
 
         .area-circle {
@@ -324,6 +350,40 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             stroke-opacity: 0.8;
             fill: #3388ff;
             fill-opacity: 0.15;
+        }
+
+        /* Custom cluster styling to match app theme */
+        .marker-cluster-small {
+            background-color: rgba(52, 152, 219, 0.6);
+            border: 2px solid #2980b9;
+        }
+
+        .marker-cluster-small div {
+            background-color: rgba(52, 152, 219, 0.9);
+            color: white;
+            font-weight: 600;
+        }
+
+        .marker-cluster-medium {
+            background-color: rgba(41, 128, 185, 0.6);
+            border: 2px solid #2471a3;
+        }
+
+        .marker-cluster-medium div {
+            background-color: rgba(41, 128, 185, 0.9);
+            color: white;
+            font-weight: 600;
+        }
+
+        .marker-cluster-large {
+            background-color: rgba(30, 98, 145, 0.6);
+            border: 2px solid #1b4f72;
+        }
+
+        .marker-cluster-large div {
+            background-color: rgba(30, 98, 145, 0.9);
+            color: white;
+            font-weight: 600;
         }
 
         .year-controls {
@@ -408,13 +468,41 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             display: flex;
             align-items: center;
             margin-bottom: 8px;
+            font-size: 0.85rem;
         }
 
         .legend-color {
             width: 20px;
             height: 20px;
+            min-width: 20px;
+            min-height: 20px;
             margin-right: 10px;
             border-radius: 3px;
+            flex-shrink: 0;
+        }
+        
+        .legend-color-gradient {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            min-height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #FFff00, #ff4800);
+            flex-shrink: 0;
+        }
+        
+        .legend-shortcuts {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 0.75rem;
+            color: var(--gray);
+            line-height: 1.4;
+        }
+        
+        .legend-shortcuts strong {
+            font-weight: 600;
         }
 
         #year-buttons button {
@@ -439,27 +527,55 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             border-color: var(--confirm-color);
         }
 
-        .controls-toggle {
+        .top-controls {
             position: absolute;
             top: 10px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
-            background: var(--confirm-color);
+            display: flex;
+            box-shadow: 0 2px 8px var(--shadow-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .top-controls.hidden {
+            display: none;
+        }
+
+        .top-control-btn {
             color: var(--white);
             border: none;
             padding: 10px 20px;
-            border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
             transition: all 0.3s ease;
+            border-radius: 0;
+            margin: 0;
         }
 
-        .controls-toggle:hover {
+        .start-over-btn {
+            background: #ff9800;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .start-over-btn:hover {
+            background: #fb8c00;
+            transform: translateY(-1px);
+        }
+
+        .controls-toggle-btn {
+            background: var(--confirm-color);
+        }
+
+        .controls-toggle-btn:hover {
             background: var(--success-hover);
-            transform: translateX(-50%) translateY(-2px);
-            box-shadow: 0 4px 12px rgba(64, 145, 108, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .top-controls:hover {
+            box-shadow: 0 4px 12px var(--shadow-color);
         }
 
         /* Large screens */
@@ -587,8 +703,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         <p data-i18n="processingText">Processing GeoJSON data...</p>
     </div>
 
-    <!-- Controls Toggle Button -->
-    <button id="controlsToggle" class="controls-toggle hidden" data-i18n="hideControls">Hide Controls</button>
+    <!-- Top Control Buttons -->
+    <div id="topControls" class="top-controls hidden">
+        <button id="startOverButton" class="top-control-btn start-over-btn" data-i18n="startOver">Start Over</button>
+        <button id="controlsToggle" class="top-control-btn controls-toggle-btn" data-i18n="hideControls">Hide Controls</button>
+    </div>
 
     <!-- Tree Loss Controls -->
     <div id="deforestationControls" class="year-controls hidden">
@@ -599,8 +718,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             <button id="btn-before-2021" data-i18n="before2021">Before 2021</button>
             <button id="btn-2021-onwards" class="active" data-i18n="from2021">2021 Onwards</button>
             <button id="btn-clear-all" data-i18n="clearAll">Clear All</button>
+            <button id="btn-custom" data-i18n="custom">Custom</button>
         </div>
-        <div class="control-group">
+        <div id="individualYearsSection" class="control-group hidden">
             <h4 data-i18n="individualYears">Individual Years:</h4>
             <div id="year-buttons"></div>
         </div>
@@ -610,10 +730,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <div id="mapLegend" class="legend hidden">
         <h4 data-i18n="legendTitle">Legend</h4>
         <div id="legend-items"></div>
+        <div class="legend-shortcuts">
+            <strong data-i18n="keyboardShortcuts">Keyboard Shortcuts</strong><br>
+            <span data-i18n="shortcutSpace">Space: Tree Loss Overlay</span><br>
+            <span data-i18n="shortcutF">F: Tree Cover Overlay</span><br>
+            <span data-i18n="shortcutT">T: Satellite 2020 & Now</span>
+        </div>
     </div>
 
     <!-- Map Container -->
-    <div id="map"></div>
+    <div id="map" tabindex="0"></div>
 
     <!-- Translation Data -->
     <script type="application/json" id="lang-en">
@@ -629,6 +755,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "privacyText": "Your file and any of its content is only processed locally in your browser and none of your information is sent to GeoRoots, the map providers or anyone else.",
         "licenseText": "This software is free, released under GPLv3 open source license, see source code for full disclaimer.",
         "processingText": "Processing GeoJSON data...",
+        "startOver": "Start Over",
         "hideControls": "Hide Controls",
         "showControls": "Show Controls",
         "deforestationControlsTitle": "Tree Loss Controls",
@@ -637,10 +764,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "before2021": "Before 2021",
         "from2021": "2021 Onwards",
         "clearAll": "Clear All",
+        "custom": "Custom",
         "individualYears": "Individual Years:",
         "legendTitle": "Legend",
         "plotBoundary": "Plot Boundary",
         "treeCoverLoss": "{year} Tree Cover Loss",
+        "treeCoverLoss2001_2020": "Tree Cover Loss 2001-2020",
+        "treeCoverLoss2021_2024": "Tree Cover Loss 2021-2024 (EUDR)",
         "noProperties": "No properties found",
         "propertiesTitle": "Properties",
         "invalidGeoJSON": "Error processing the file. Please make sure it is a valid GeoJSON file.",
@@ -651,7 +781,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "forestCoverage": "Forest Coverage (GFC 2020v2)",
         "treeCoverLossAttribution": "Tree Cover Loss © Global Forest Watch",
         "esri2020Attribution": "Tiles © Esri 2020 — Source: Esri, Maxar, Earthstar Geographics",
-        "gfcAttribution": "European Commission JRC - Global Forest Change 2020v2"
+        "gfcAttribution": "European Commission JRC - Global Forest Change 2020v2",
+        "keyboardShortcuts": "Keyboard Shortcuts",
+        "shortcutSpace": "Space: Tree Loss Overlay",
+        "shortcutF": "F: Tree Cover Overlay",
+        "shortcutT": "T: Satellite 2020 & Now"
     }
     </script>
 
@@ -668,6 +802,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "privacyText": "Tu archivo y su contenido solo se procesan localmente en tu navegador y ninguna información se envía a GeoRoots, los proveedores de mapas ni a nadie más.",
         "licenseText": "Este software es gratuito, bajo licencia de código abierto GPLv3; consulta el código fuente para el descargo de responsabilidad completo.",
         "processingText": "Procesando datos GeoJSON...",
+        "startOver": "Empezar de nuevo",
         "hideControls": "Ocultar controles",
         "showControls": "Mostrar controles",
         "deforestationControlsTitle": "Controles de Pérdida de Árboles",
@@ -676,10 +811,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "before2021": "Antes de 2021",
         "from2021": "Desde 2021",
         "clearAll": "Limpiar todo",
+        "custom": "Personalizado",
         "individualYears": "Años individuales:",
         "legendTitle": "Leyenda",
         "plotBoundary": "Límite de parcela",
         "treeCoverLoss": "Pérdida de cobertura arbórea {year}",
+        "treeCoverLoss2001_2020": "Pérdida de cobertura arbórea 2001-2020",
+        "treeCoverLoss2021_2024": "Pérdida de cobertura arbórea 2021-2024 (EUDR)",
         "noProperties": "No se encontraron propiedades",
         "propertiesTitle": "Propiedades",
         "invalidGeoJSON": "Error al procesar el archivo. Por favor, asegúrate de que es un archivo GeoJSON válido.",
@@ -690,7 +828,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "forestCoverage": "Cobertura forestal (GFC 2020v2)",
         "treeCoverLossAttribution": "Pérdida de cobertura arbórea © Global Forest Watch",
         "esri2020Attribution": "Teselas © Esri 2020 — Fuente: Esri, Maxar, Earthstar Geographics",
-        "gfcAttribution": "Comisión Europea JRC - Cambio Global de Bosques 2020v2"
+        "gfcAttribution": "Comisión Europea JRC - Cambio Global de Bosques 2020v2",
+        "keyboardShortcuts": "Atajos de Teclado",
+        "shortcutSpace": "Espacio: Superposición de Pérdida",
+        "shortcutF": "F: Superposición de Cobertura",
+        "shortcutT": "T: Satélite 2020 y Actual"
     }
     </script>
 
@@ -707,6 +849,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "privacyText": "Votre fichier et son contenu ne sont traités que localement dans votre navigateur et aucune information n'est envoyée à GeoRoots, aux fournisseurs de cartes ou à quiconque.",
         "licenseText": "Ce logiciel est gratuit, publié sous licence open source GPLv3, voir le code source pour la clause de non-responsabilité complète.",
         "processingText": "Traitement des données GeoJSON...",
+        "startOver": "Recommencer",
         "hideControls": "Masquer les contrôles",
         "showControls": "Afficher les contrôles",
         "deforestationControlsTitle": "Contrôles de la perte d'arbres",
@@ -715,10 +858,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "before2021": "Avant 2021",
         "from2021": "Depuis 2021",
         "clearAll": "Tout effacer",
+        "custom": "Personnalisé",
         "individualYears": "Années individuelles :",
         "legendTitle": "Légende",
         "plotBoundary": "Limite de la parcelle",
         "treeCoverLoss": "Perte de couvert arboré {year}",
+        "treeCoverLoss2001_2020": "Perte de couvert arboré 2001-2020",
+        "treeCoverLoss2021_2024": "Perte de couvert arboré 2021-2024 (EUDR)",
         "noProperties": "Aucune propriété trouvée",
         "propertiesTitle": "Propriétés",
         "invalidGeoJSON": "Erreur lors du traitement du fichier. Veuillez vous assurer qu'il s'agit d'un fichier GeoJSON valide.",
@@ -729,7 +875,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "forestCoverage": "Couverture forestière (GFC 2020v2)",
         "treeCoverLossAttribution": "Perte de couvert arboré © Global Forest Watch",
         "esri2020Attribution": "Tuiles © Esri 2020 — Source : Esri, Maxar, Earthstar Geographics",
-        "gfcAttribution": "Commission européenne JRC - Changement global des forêts 2020v2"
+        "gfcAttribution": "Commission européenne JRC - Changement global des forêts 2020v2",
+        "keyboardShortcuts": "Raccourcis Clavier",
+        "shortcutSpace": "Espace : Superposition de Perte",
+        "shortcutF": "F : Superposition de Couverture",
+        "shortcutT": "T : Satellite 2020 et Actuel"
     }
     </script>
 
@@ -746,6 +896,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "privacyText": "Seu arquivo e qualquer conteúdo dele são processados apenas localmente no seu navegador e nenhuma informação é enviada ao GeoRoots, aos provedores de mapas ou a qualquer outra pessoa.",
         "licenseText": "Este software é gratuito, licenciado sob GPLv3 de código aberto; veja o código‑fonte para o aviso legal completo.",
         "processingText": "Processando dados GeoJSON...",
+        "startOver": "Recomeçar",
         "hideControls": "Ocultar controles",
         "showControls": "Mostrar controles",
         "deforestationControlsTitle": "Controles de Perda de Árvores",
@@ -754,10 +905,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "before2021": "Antes de 2021",
         "from2021": "A partir de 2021",
         "clearAll": "Limpar tudo",
+        "custom": "Personalizado",
         "individualYears": "Anos individuais:",
         "legendTitle": "Legenda",
         "plotBoundary": "Limite da parcela",
         "treeCoverLoss": "Perda de cobertura arbórea {year}",
+        "treeCoverLoss2001_2020": "Perda de cobertura arbórea 2001-2020",
+        "treeCoverLoss2021_2024": "Perda de cobertura arbórea 2021-2024 (EUDR)",
         "noProperties": "Nenhuma propriedade encontrada",
         "propertiesTitle": "Propriedades",
         "invalidGeoJSON": "Erro ao processar o arquivo. Certifique-se de que é um arquivo GeoJSON válido.",
@@ -768,7 +922,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "forestCoverage": "Cobertura florestal (GFC 2020v2)",
         "treeCoverLossAttribution": "Perda de cobertura arbórea © Global Forest Watch",
         "esri2020Attribution": "Blocos © Esri 2020 — Fonte: Esri, Maxar, Earthstar Geographics",
-        "gfcAttribution": "Comissão Europeia JRC - Mudança Global das Florestas 2020v2"
+        "gfcAttribution": "Comissão Europeia JRC - Mudança Global das Florestas 2020v2",
+        "keyboardShortcuts": "Atalhos de Teclado",
+        "shortcutSpace": "Espaço: Sobreposição de Perda",
+        "shortcutF": "F: Sobreposição de Cobertura",
+        "shortcutT": "T: Satélite 2020 e Atual"
     }
     </script>
 
@@ -785,6 +943,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "privacyText": "Faili lako na maudhui yake yote yanachakatwa tu ndani ya kivinjari chako na hakuna taarifa zako zinazotumwa kwa GeoRoots, watoa ramani au mtu mwingine yeyote.",
         "licenseText": "Programu hii ni bure, chini ya leseni ya vyanzo wazi GPLv3; angalia msimbo chanzo kwa taarifa kamili.",
         "processingText": "Inachakata data ya GeoJSON...",
+        "startOver": "Anza upya",
         "hideControls": "Ficha vidhibiti",
         "showControls": "Onyesha vidhibiti",
         "deforestationControlsTitle": "Vidhibiti vya Upotevu wa Miti",
@@ -793,10 +952,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "before2021": "Kabla ya 2021",
         "from2021": "Kuanzia 2021",
         "clearAll": "Futa vyote",
+        "custom": "Maalum",
         "individualYears": "Miaka ya kibinafsi:",
         "legendTitle": "Maelezo",
         "plotBoundary": "Mpaka wa shamba",
         "treeCoverLoss": "Upotevu wa miti {year}",
+        "treeCoverLoss2001_2020": "Upotevu wa miti 2001-2020",
+        "treeCoverLoss2021_2024": "Upotevu wa miti 2021-2024 (EUDR)",
         "noProperties": "Hakuna mali zilizopatikana",
         "propertiesTitle": "Mali",
         "invalidGeoJSON": "Hitilafu katika kuchakata faili. Tafadhali hakikisha ni faili halali ya GeoJSON.",
@@ -807,7 +969,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "forestCoverage": "Ufunikaji wa misitu (GFC 2020v2)",
         "treeCoverLossAttribution": "Upotevu wa miti © Global Forest Watch",
         "esri2020Attribution": "Vigae © Esri 2020 — Chanzo: Esri, Maxar, Earthstar Geographics",
-        "gfcAttribution": "Tume ya Ulaya JRC - Mabadiliko ya Misitu Duniani 2020v2"
+        "gfcAttribution": "Tume ya Ulaya JRC - Mabadiliko ya Misitu Duniani 2020v2",
+        "keyboardShortcuts": "Njia za Mkato",
+        "shortcutSpace": "Nafasi: Tabaka la Upotevu",
+        "shortcutF": "F: Tabaka la Ufunikaji",
+        "shortcutT": "T: Satilaiti 2020 na Sasa"
     }
     </script>
 
@@ -824,6 +990,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "privacyText": "您的文件及其内容仅在您的浏览器中本地处理，您的信息不会发送给 GeoRoots、地图提供商或任何其他人。",
         "licenseText": "本软件免费，采用 GPLv3 开源许可，详见源代码免责声明。",
         "processingText": "正在处理 GeoJSON 数据...",
+        "startOver": "重新开始",
         "hideControls": "隐藏控件",
         "showControls": "显示控件",
         "deforestationControlsTitle": "树木损失控制",
@@ -832,10 +999,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "before2021": "2021 年之前",
         "from2021": "2021 年及以后",
         "clearAll": "清除全部",
+        "custom": "自定义",
         "individualYears": "单独年份：",
         "legendTitle": "图例",
         "plotBoundary": "地块边界",
         "treeCoverLoss": "{year} 年森林损失",
+        "treeCoverLoss2001_2020": "森林损失 2001-2020",
+        "treeCoverLoss2021_2024": "森林损失 2021-2024 (EUDR)",
         "noProperties": "未找到属性",
         "propertiesTitle": "属性",
         "invalidGeoJSON": "处理文件出错。请确保它是有效的 GeoJSON 文件。",
@@ -846,7 +1016,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "forestCoverage": "森林覆盖（GFC 2020v2）",
         "treeCoverLossAttribution": "森林损失 © Global Forest Watch",
         "esri2020Attribution": "瓦片 © Esri 2020 — 来源：Esri, Maxar, Earthstar Geographics",
-        "gfcAttribution": "欧盟委员会 JRC - 全球森林变化 2020v2"
+        "gfcAttribution": "欧盟委员会 JRC - 全球森林变化 2020v2",
+        "keyboardShortcuts": "键盘快捷键",
+        "shortcutSpace": "空格：树木损失叠加层",
+        "shortcutF": "F：树木覆盖叠加层",
+        "shortcutT": "T：卫星 2020 和现在"
     }
     </script>
 
@@ -863,6 +1037,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "privacyText": "ไฟล์ของคุณและเนื้อหาทั้งหมดจะถูกประมวลผลเฉพาะในเบราว์เซอร์ของคุณเท่านั้น และจะไม่มีข้อมูลใด ๆ ของคุณถูกส่งไปยัง GeoRoots ผู้ให้บริการแผนที่ หรือบุคคลอื่น",
         "licenseText": "ซอฟต์แวร์นี้ฟรี ภายใต้สัญญาอนุญาตโค้ดเปิด GPLv3 ดูซอร์สโค้ดสำหรับข้อจำกัดความรับผิดฉบับเต็ม",
         "processingText": "กำลังประมวลผลข้อมูล GeoJSON...",
+        "startOver": "เริ่มใหม่",
         "hideControls": "ซ่อนตัวควบคุม",
         "showControls": "แสดงตัวควบคุม",
         "deforestationControlsTitle": "ตัวควบคุมการสูญเสียต้นไม้",
@@ -871,10 +1046,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "before2021": "ก่อน 2021",
         "from2021": "ตั้งแต่ 2021",
         "clearAll": "ล้างทั้งหมด",
+        "custom": "กำหนดเอง",
         "individualYears": "ปีแต่ละปี:",
         "legendTitle": "คำอธิบาย",
         "plotBoundary": "ขอบเขตแปลง",
         "treeCoverLoss": "การสูญเสียการปกคลุมของต้นไม้ {year}",
+        "treeCoverLoss2001_2020": "การสูญเสียการปกคลุมของต้นไม้ 2001-2020",
+        "treeCoverLoss2021_2024": "การสูญเสียการปกคลุมของต้นไม้ 2021-2024 (EUDR)",
         "noProperties": "ไม่พบคุณสมบัติ",
         "propertiesTitle": "คุณสมบัติ",
         "invalidGeoJSON": "เกิดข้อผิดพลาดในการประมวลผลไฟล์ โปรดตรวจสอบให้แน่ใจว่าเป็นไฟล์ GeoJSON ที่ถูกต้อง",
@@ -885,7 +1063,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "forestCoverage": "การปกคลุมป่า (GFC 2020v2)",
         "treeCoverLossAttribution": "การสูญเสียการปกคลุมของต้นไม้ © Global Forest Watch",
         "esri2020Attribution": "ไทล์ © Esri 2020 — แหล่งที่มา: Esri, Maxar, Earthstar Geographics",
-        "gfcAttribution": "คณะกรรมาธิการยุโรป JRC - การเปลี่ยนแปลงป่าไผ่ทั่วโลก 2020v2"
+        "gfcAttribution": "คณะกรรมาธิการยุโรป JRC - การเปลี่ยนแปลงป่าไผ่ทั่วโลก 2020v2",
+        "keyboardShortcuts": "ทางลัดแป้นพิมพ์",
+        "shortcutSpace": "Space: การซ้อนทับการสูญเสีย",
+        "shortcutF": "F: การซ้อนทับการปกคลุม",
+        "shortcutT": "T: ดาวเทียม 2020 และปัจจุบัน"
     }
     </script>
 
@@ -902,6 +1084,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "privacyText": "ፋይሉ እና ውሂቡ በአንተ አሳሽ ብቻ ይሰራል፣ መረጃዎ ወደ GeoRoots ወይም ማንኛውም ሰው አይላከውም።",
         "licenseText": "ይህ ሶፍትዌር ነፃ ነው፣ በ GPLv3 ክፍት ምንጭ ፈቃድ የተሰጠ፣ ሙሉ ማስተናገድ ለማየት የምንጭ ኮድን ይመልከቱ።",
         "processingText": "GeoJSON ዳታን በማስተናገድ ላይ...",
+        "startOver": "እንደገና ጀምር",
         "hideControls": "መቆጣጠሪያዎቹን ደብቅ",
         "showControls": "መቆጣጠሪያዎቹን አሳይ",
         "deforestationControlsTitle": "የዛፎች ኪሳራ መቆጣጠሪያዎች",
@@ -910,10 +1093,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "before2021": "ከ2021 በፊት",
         "from2021": "2021 ጀምሮ",
         "clearAll": "ሁሉንም አጥፋ",
+        "custom": "ብጁ",
         "individualYears": "የተናጠሉ ዓመታት:",
         "legendTitle": "መለኪያ",
         "plotBoundary": "የቦታ ድንበር",
         "treeCoverLoss": "የደን መከላከያ ጥፋት {year}",
+        "treeCoverLoss2001_2020": "የደን መከላከያ ጥፋት 2001-2020",
+        "treeCoverLoss2021_2024": "የደን መከላከያ ጥፋት 2021-2024 (EUDR)",
         "noProperties": "ምንም ባህሪያት አልተገኙም",
         "propertiesTitle": "ባህሪያት",
         "invalidGeoJSON": "ፋይሉን ማስተናገድ ላይ ስህተት። እባክዎ ትክክለኛ GeoJSON ፋይል መሆኑን ያረጋግጡ።",
@@ -924,12 +1110,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         "forestCoverage": "የዱር ሽፋን (GFC 2020v2)",
         "treeCoverLossAttribution": "የደን መከላከያ ጥፋት © Global Forest Watch",
         "esri2020Attribution": "ታይል © Esri 2020 — ምንጭ: Esri, Maxar, Earthstar Geographics",
-        "gfcAttribution": "የአውሮፓ ኮሚሽን JRC - የዱር ዓለም ለውጥ 2020v2"
+        "gfcAttribution": "የአውሮፓ ኮሚሽን JRC - የዱር ዓለም ለውጥ 2020v2",
+        "keyboardShortcuts": "የቁልፍ ሰሌዳ አቋራጮች",
+        "shortcutSpace": "ክፍተት: የዛፍ ኪሳራ ንብርብር",
+        "shortcutF": "F: የዛፍ ሽፋን ንብርብር",
+        "shortcutT": "T: ሳተላይት 2020 እና አሁን"
     }
     </script>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script>
         // Global variables
         let map;
@@ -937,8 +1128,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         let pointLayer;
         let pointMarkerLayer;
         let polygonMarkerLayer;
+        let pointClusterGroup;
+        let polygonClusterGroup;
         let currentGeoJSON;
         let treeLossLayer;
+        let forestCoverageLayer;
         let baseLayers = {};
         let layerControl;
         let activeYears = {};
@@ -973,35 +1167,42 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         function getBaseLayers() {
             return {
                 [getText('streetMap')]: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 18,
+                    maxZoom: 19,
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }),
                 [getText('topoMap')]: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 18,
+                    maxZoom: 19,
                     maxNativeZoom: 15,
                     attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
                 }),
                 [getText('satelliteLatest')]: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 18,
+                    maxZoom: 19,
+                    maxNativeZoom: 18,
                     attribution: '&copy; <a href="https://www.esri.com">Esri</a>'
                 }),
                 [getText('satellite2020')]: L.tileLayer('https://wayback-b.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/29260/{z}/{y}/{x}', {
                     attribution: getText('esri2020Attribution'),
-                    maxZoom: 18,
+                    maxZoom: 19,
                     maxNativeZoom: 17,
                     tileSize: 256
                 })
             };
         }
         function getOverlayMaps() {
-            return {
-                [getText('forestCoverage')]: L.tileLayer.wms('https://forest-observatory.ec.europa.eu/wms/RMAP', {
+            // Create forest coverage layer only once and reuse it
+            if (!forestCoverageLayer) {
+                forestCoverageLayer = L.tileLayer.wms('https://forest-observatory.ec.europa.eu/wms/RMAP', {
                     layers: 'cover_v2',
                     format: 'image/png',
                     transparent: true,
                     version: '1.3.0',
-                    attribution: getText('gfcAttribution')
-                })
+                    attribution: getText('gfcAttribution'),
+                    maxZoom: 19
+                });
+            }
+            
+            return {
+                [getText('forestCoverage')]: forestCoverageLayer
             };
         }
 
@@ -1009,7 +1210,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             map = L.map('map', {
                 center: [0, 0],
                 zoom: 2,
-                zoomControl: true
+                zoomControl: true,
+                maxZoom: 19
             });
             baseLayers = getBaseLayers();
             // Add the first base layer to the map
@@ -1020,16 +1222,74 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             pointLayer = L.layerGroup().addTo(map);
             pointMarkerLayer = L.layerGroup().addTo(map);
             polygonMarkerLayer = L.layerGroup().addTo(map);
+            
+            // Initialize cluster groups for performance with large datasets
+            pointClusterGroup = L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 80,
+                spiderfyOnMaxZoom: false,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                disableClusteringAtZoom: 14,
+                iconCreateFunction: function(cluster) {
+                    const childCount = cluster.getChildCount();
+                    let className = 'marker-cluster-small';
+                    if (childCount > 100) {
+                        className = 'marker-cluster-large';
+                    } else if (childCount > 20) {
+                        className = 'marker-cluster-medium';
+                    }
+                    
+                    return L.divIcon({
+                        html: '<div><span>' + childCount + '</span></div>',
+                        className: 'marker-cluster ' + className,
+                        iconSize: L.point(40, 40)
+                    });
+                }
+            });
+            
+            polygonClusterGroup = L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 80,
+                spiderfyOnMaxZoom: false,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                disableClusteringAtZoom: 14,
+                iconCreateFunction: function(cluster) {
+                    const childCount = cluster.getChildCount();
+                    let className = 'marker-cluster-small';
+                    if (childCount > 100) {
+                        className = 'marker-cluster-large';
+                    } else if (childCount > 20) {
+                        className = 'marker-cluster-medium';
+                    }
+                    
+                    return L.divIcon({
+                        html: '<div><span>' + childCount + '</span></div>',
+                        className: 'marker-cluster ' + className,
+                        iconSize: L.point(40, 40)
+                    });
+                }
+            });
             initializeDeforestationLayer();
             const overlayMaps = getOverlayMaps();
             layerControl = L.control.layers(baseLayers, overlayMaps, { collapsed: false }).addTo(map);
             document.getElementById('deforestationControls').classList.remove('hidden');
             document.getElementById('mapLegend').classList.remove('hidden');
-            document.getElementById('controlsToggle').classList.remove('hidden');
+            document.getElementById('topControls').classList.remove('hidden');
             map.on('zoomend', updateLayersByZoom);
             map.on('baselayerchange', function(e) {
                 currentBaseLayer = e.layer;
                 ensureTreeLossLayerOnTop();
+            });
+            
+            // Restore focus to map container on any layer control interaction to keep keyboard shortcuts working
+            const layerControlContainer = layerControl.getContainer();
+            layerControlContainer.addEventListener('click', function() {
+                // Use setTimeout to ensure focus is set after Leaflet processes the click
+                setTimeout(() => {
+                    map.getContainer().focus();
+                }, 0);
             });
             document.getElementById('controlsToggle').addEventListener('click', function() {
                 const legend = document.getElementById('mapLegend');
@@ -1045,12 +1305,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                     button.textContent = getText('showControls');
                 }
             });
+            
+            document.getElementById('startOverButton').addEventListener('click', function() {
+                location.reload();
+            });
         }
 
         function ensureTreeLossLayerOnTop() {
-            // If treeLossLayer exists and is on the map, remove and re-add to put it on top
-            if (treeLossLayer && map.hasLayer(treeLossLayer)) {
-                treeLossLayer.bringToFront();
+            // If treeLossLayer exists, ensure it's on the map and on top
+            if (treeLossLayer) {
+                const zoom = map.getZoom();
+                // Only show at zoom >= 4
+                if (zoom >= 4) {
+                    if (!map.hasLayer(treeLossLayer)) {
+                        treeLossLayer.addTo(map);
+                    } else {
+                        treeLossLayer.bringToFront();
+                    }
+                }
             }
         }
 
@@ -1125,14 +1397,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                     try {
                         const geoJSON = JSON.parse(e.target.result);
                         
-                        // Process GeoJSON data
+                        // Process GeoJSON data (will normalize and validate)
                         processGeoJSON(geoJSON);
 
                         // Hide loading overlay
                         loadingOverlay.style.display = 'none';
                     } catch (error) {
                         console.error('Error processing GeoJSON:', error);
-                        alert(getText('invalidGeoJSON'));
+                        alert(getText('invalidGeoJSON') + '\n' + error.message);
                         
                         // Show welcome overlay again on error
                         showWelcomeOverlay();
@@ -1143,9 +1415,58 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             }
         }
 
+        function normalizeGeoJSON(geoJSON) {
+            // Normalize any valid GeoJSON format to a FeatureCollection
+            if (!geoJSON || typeof geoJSON !== 'object') {
+                throw new Error('Invalid GeoJSON: must be an object');
+            }
+            
+            // Already a FeatureCollection
+            if (geoJSON.type === 'FeatureCollection') {
+                return geoJSON;
+            }
+            
+            // Single Feature
+            if (geoJSON.type === 'Feature') {
+                return {
+                    type: 'FeatureCollection',
+                    features: [geoJSON]
+                };
+            }
+            
+            // GeometryCollection
+            if (geoJSON.type === 'GeometryCollection' && geoJSON.geometries) {
+                return {
+                    type: 'FeatureCollection',
+                    features: geoJSON.geometries.map(geom => ({
+                        type: 'Feature',
+                        geometry: geom,
+                        properties: {}
+                    }))
+                };
+            }
+            
+            // Just a Geometry (Point, LineString, Polygon, etc.)
+            if (geoJSON.type && geoJSON.coordinates) {
+                return {
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        geometry: geoJSON,
+                        properties: {}
+                    }]
+                };
+            }
+            
+            throw new Error('Invalid GeoJSON: unrecognized format');
+        }
+
         function processGeoJSON(geoJSON) {
+            // Normalize the GeoJSON to a FeatureCollection format
+            const normalizedGeoJSON = normalizeGeoJSON(geoJSON);
+            
             // Store the current GeoJSON data
-            currentGeoJSON = geoJSON;
+            currentGeoJSON = normalizedGeoJSON;
             
             // Clear existing layers
             polygonLayer.clearLayers();
@@ -1153,12 +1474,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             pointMarkerLayer.clearLayers();
             polygonMarkerLayer.clearLayers();
             
+            // Clear cluster groups
+            if (pointClusterGroup) {
+                pointClusterGroup.clearLayers();
+            }
+            if (polygonClusterGroup) {
+                polygonClusterGroup.clearLayers();
+            }
+            
             // Calculate bounds to fit the map to the data
             let bounds = null;
             
+            // Count features for performance optimization
+            const featureCount = normalizedGeoJSON.features ? normalizedGeoJSON.features.length : 0;
+            const useClustering = featureCount > 1000; // Enable clustering for datasets with more than 1000 features
+            
             // Process each feature in the GeoJSON
-            if (geoJSON.features && geoJSON.features.length > 0) {
-                geoJSON.features.forEach(function(feature) {
+            if (normalizedGeoJSON.features && normalizedGeoJSON.features.length > 0) {
+                normalizedGeoJSON.features.forEach(function(feature) {
                     // Get feature bounds
                     const featureBounds = getFeatureBounds(feature);
                     if (featureBounds) {
@@ -1172,9 +1505,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                     if (feature.geometry) {
                         // Process based on geometry type
                         if (feature.geometry.type === 'Point') {
-                            processPointFeature(feature);
+                            processPointFeature(feature, useClustering);
+                        } else if (feature.geometry.type === 'MultiPoint') {
+                            processMultiPointFeature(feature, useClustering);
                         } else if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-                            processPolygonFeature(feature);
+                            processPolygonFeature(feature, useClustering);
                         }
                     }
                 });
@@ -1182,6 +1517,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 // Fit map to data bounds if available
                 if (bounds) {
                     map.fitBounds(bounds);
+                }
+                
+                // Add cluster groups to map if they have markers and clustering is enabled
+                if (useClustering) {
+                    if (pointClusterGroup && pointClusterGroup.getLayers().length > 0) {
+                        map.addLayer(pointClusterGroup);
+                    }
+                    if (polygonClusterGroup && polygonClusterGroup.getLayers().length > 0) {
+                        map.addLayer(polygonClusterGroup);
+                    }
                 }
                 
                 // Update layers based on current zoom
@@ -1192,66 +1537,204 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             ensureTreeLossLayerOnTop();
         }
         
+        function isValidNumber(n) {
+            return typeof n === 'number' && !isNaN(n) && isFinite(n);
+        }
+
+        function toLatLngFromXY(x, y) {
+            const lng = typeof x === 'string' ? parseFloat(x) : x;
+            const lat = typeof y === 'string' ? parseFloat(y) : y;
+            if (!isValidNumber(lat) || !isValidNumber(lng)) return null;
+            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+            return L.latLng(lat, lng);
+        }
+
         function getFeatureBounds(feature) {
             if (!feature.geometry) return null;
             
             if (feature.geometry.type === 'Point') {
                 const coords = feature.geometry.coordinates;
-                const latLng = L.latLng(coords[1], coords[0]);
+                if (!coords || coords.length < 2) return null;
+                const latLng = toLatLngFromXY(coords[0], coords[1]);
+                if (!latLng) return null;
                 return L.latLngBounds([latLng]);
+            } else if (feature.geometry.type === 'MultiPoint') {
+                const latLngs = [];
+                if (feature.geometry.coordinates && Array.isArray(feature.geometry.coordinates)) {
+                    feature.geometry.coordinates.forEach(coords => {
+                        if (coords && coords.length >= 2) {
+                            const latLng = toLatLngFromXY(coords[0], coords[1]);
+                            if (latLng) latLngs.push(latLng);
+                        }
+                    });
+                }
+                return latLngs.length ? L.latLngBounds(latLngs) : null;
             } else if (feature.geometry.type === 'Polygon') {
-                const coords = feature.geometry.coordinates[0];
-                const latLngs = coords.map(coord => L.latLng(coord[1], coord[0]));
+                const ring = feature.geometry.coordinates && feature.geometry.coordinates[0] ? feature.geometry.coordinates[0] : [];
+                const latLngs = [];
+                for (let i = 0; i < ring.length; i++) {
+                    const coord = ring[i];
+                    if (coord && coord.length >= 2) {
+                        const latLng = toLatLngFromXY(coord[0], coord[1]);
+                        if (latLng) latLngs.push(latLng);
+                    }
+                }
+                if (latLngs.length === 0) return null;
                 return L.latLngBounds(latLngs);
             } else if (feature.geometry.type === 'MultiPolygon') {
                 let allLatLngs = [];
                 feature.geometry.coordinates.forEach(polygon => {
+                    if (!polygon || !polygon[0]) return;
                     polygon[0].forEach(coord => {
-                        allLatLngs.push(L.latLng(coord[1], coord[0]));
+                        if (coord && coord.length >= 2) {
+                            const latLng = toLatLngFromXY(coord[0], coord[1]);
+                            if (latLng) allLatLngs.push(latLng);
+                        }
                     });
                 });
-                return L.latLngBounds(allLatLngs);
+                return allLatLngs.length ? L.latLngBounds(allLatLngs) : null;
             }
             
             return null;
         }
         
-        function processPointFeature(feature) {
+        function processPointFeature(feature, useClustering = true) {
             const coords = feature.geometry.coordinates;
-            const latLng = L.latLng(coords[1], coords[0]);
+            if (!coords || coords.length < 2) return;
+            const latLng = toLatLngFromXY(coords[0], coords[1]);
+            if (!latLng) return; // skip invalid
             
-            // Create a marker for zoom levels <= 15
+            // Create a marker for zoom levels <= 13
             const marker = L.marker(latLng);
             
             // Add popup with feature properties
-            const popupContent = createPopupContent(feature.properties);
+            const popupContent = createPopupContent(feature.properties, 'Point');
             marker.bindPopup(popupContent);
             
-            // Add marker to the appropriate layer
-            pointMarkerLayer.addLayer(marker);
+            // Add marker to cluster group for better performance with large datasets
+            if (useClustering && pointClusterGroup) {
+                pointClusterGroup.addLayer(marker);
+            } else {
+                // Use regular layer for smaller datasets or when clustering is disabled
+                pointMarkerLayer.addLayer(marker);
+            }
             
-            // Create circle representation with accurate area for zoom levels > 15
+            // Create circle representation with accurate area for zoom levels > 13
+            let detailedRepresentationAdded = false;
             if (feature.properties && feature.properties.Area !== undefined) {
-                // Get the area in hectares
-                const areaHectares = parseFloat(feature.properties.Area);
-                
-                // Create an accurate area circle that will be resized with zoom level
-                const areaCircle = L.circle(latLng, {
-                    className: 'area-circle'
+                // Get the area in hectares (robust parsing for commas, spaces, fractions, and unit suffixes)
+                const areaHectares = parseAreaHectares(feature.properties.Area);
+                if (isValidNumber(areaHectares) && areaHectares > 0) {
+                    // Create an accurate area circle that will be resized with zoom level
+                    const areaCircle = L.circle(latLng, {
+                        className: 'area-circle'
+                    });
+                    
+                    // Store the area in hectares as a property of the circle
+                    areaCircle.areaHectares = areaHectares;
+                    
+                    // Add popup with feature properties
+                    areaCircle.bindPopup(popupContent);
+                    
+                    // Add to the point layer (will be shown at zoom levels > 13)
+                    pointLayer.addLayer(areaCircle);
+                    detailedRepresentationAdded = true;
+                }
+            }
+
+            // If there is no valid Area, add a default-sized circle marker so it remains visible at high zoom
+            if (!detailedRepresentationAdded) {
+                const circleMarker = L.circleMarker(latLng, {
+                    radius: 6,
+                    color: '#3388ff',
+                    weight: 2,
+                    opacity: 0.9,
+                    fillColor: '#3388ff',
+                    fillOpacity: 0.6
                 });
-                
-                // Store the area in hectares as a property of the circle
-                areaCircle.areaHectares = areaHectares;
-                
-                // Add popup with feature properties
-                areaCircle.bindPopup(popupContent);
-                
-                // Add to the point layer (will be shown at zoom levels > 15)
-                pointLayer.addLayer(areaCircle);
+                circleMarker.bindPopup(popupContent);
+                pointLayer.addLayer(circleMarker);
             }
         }
         
-        function processPolygonFeature(feature) {
+        function processMultiPointFeature(feature, useClustering = true) {
+            // MultiPoint contains an array of Point coordinates
+            const coordinates = feature.geometry.coordinates;
+            if (!coordinates || !Array.isArray(coordinates)) return;
+            
+            // Create the popup content once, shared by all points in this MultiPoint feature
+            const popupContent = createPopupContent(feature.properties, 'MultiPoint');
+            
+            // Process each point in the MultiPoint
+            coordinates.forEach((coords, index) => {
+                if (!coords || coords.length < 2) return;
+                const latLng = toLatLngFromXY(coords[0], coords[1]);
+                if (!latLng) return; // skip invalid coordinates
+                
+                // Create a marker for zoom levels <= 13
+                const marker = L.marker(latLng);
+                marker.bindPopup(popupContent);
+                
+                // Add marker to cluster group for better performance with large datasets
+                if (useClustering && pointClusterGroup) {
+                    pointClusterGroup.addLayer(marker);
+                } else {
+                    pointMarkerLayer.addLayer(marker);
+                }
+                
+                // Create detailed representation for zoom levels > 13
+                let detailedRepresentationAdded = false;
+                
+                // Check if there's an Area property for this specific point
+                // Some MultiPoint features might have an array of areas
+                let areaValue = null;
+                if (feature.properties) {
+                    // Try to find area for this specific point (check for array of areas)
+                    if (feature.properties.Areas && Array.isArray(feature.properties.Areas) && feature.properties.Areas[index] !== undefined) {
+                        areaValue = feature.properties.Areas[index];
+                    } 
+                    // Otherwise use single Area property (applies to all points)
+                    else if (feature.properties.Area !== undefined) {
+                        areaValue = feature.properties.Area;
+                    }
+                }
+                
+                if (areaValue !== null) {
+                    const areaHectares = parseAreaHectares(areaValue);
+                    if (isValidNumber(areaHectares) && areaHectares > 0) {
+                        // Create an accurate area circle that will be resized with zoom level
+                        const areaCircle = L.circle(latLng, {
+                            className: 'area-circle'
+                        });
+                        
+                        // Store the area in hectares as a property of the circle
+                        areaCircle.areaHectares = areaHectares;
+                        areaCircle.bindPopup(popupContent);
+                        pointLayer.addLayer(areaCircle);
+                        detailedRepresentationAdded = true;
+                    }
+                }
+                
+                // If there is no valid Area, add a default-sized circle marker so it remains visible at high zoom
+                if (!detailedRepresentationAdded) {
+                    const circleMarker = L.circleMarker(latLng, {
+                        radius: 6,
+                        color: '#3388ff',
+                        weight: 2,
+                        opacity: 0.9,
+                        fillColor: '#3388ff',
+                        fillOpacity: 0.6
+                    });
+                    circleMarker.bindPopup(popupContent);
+                    pointLayer.addLayer(circleMarker);
+                }
+            });
+        }
+        
+        function processPolygonFeature(feature, useClustering = true) {
+            // Determine geometry type for popup title
+            const geometryType = feature.geometry.type;
+            
             // Create the polygon
             const geoJSONLayer = L.geoJSON(feature, {
                 style: function() {
@@ -1265,7 +1748,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 },
                 onEachFeature: function(feature, layer) {
                     // Add popup with feature properties
-                    const popupContent = createPopupContent(feature.properties);
+                    const popupContent = createPopupContent(feature.properties, geometryType);
                     layer.bindPopup(popupContent);
                 }
             });
@@ -1273,62 +1756,225 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             // Add polygon to the polygon layer
             polygonLayer.addLayer(geoJSONLayer);
             
-            // Calculate centroid for marker representation
+            // Create the popup content once, shared by all markers for this feature
+            const popupContent = createPopupContent(feature.properties, geometryType);
+            
+            // Calculate centroid(s) for marker representation
             try {
-                let centroid;
                 if (feature.geometry.type === 'Polygon') {
-                    centroid = calculatePolygonCentroid(feature.geometry.coordinates[0]);
+                    // Validate polygon coordinates structure
+                    if (feature.geometry.coordinates && 
+                        feature.geometry.coordinates.length > 0 && 
+                        feature.geometry.coordinates[0] && 
+                        feature.geometry.coordinates[0].length > 0) {
+                        const centroid = calculatePolygonCentroid(feature.geometry.coordinates[0]);
+                        if (centroid && centroid.length === 2 && isValidNumber(centroid[0]) && isValidNumber(centroid[1])) {
+                            createPolygonMarker(centroid, popupContent, useClustering);
+                        }
+                    }
                 } else if (feature.geometry.type === 'MultiPolygon') {
-                    // For simplicity, use the first polygon's centroid
-                    centroid = calculatePolygonCentroid(feature.geometry.coordinates[0][0]);
-                }
-                
-                if (centroid) {
-                    // Create a marker at the centroid
-                    const marker = L.marker([centroid[1], centroid[0]]);
-                    
-                    // Add popup with feature properties
-                    const popupContent = createPopupContent(feature.properties);
-                    marker.bindPopup(popupContent);
-                    
-                    // Add to the polygon marker layer
-                    polygonMarkerLayer.addLayer(marker);
+                    // Process each polygon in the MultiPolygon
+                    if (feature.geometry.coordinates && Array.isArray(feature.geometry.coordinates)) {
+                        feature.geometry.coordinates.forEach(polygon => {
+                            // Validate each polygon's coordinates structure
+                            if (polygon && 
+                                polygon.length > 0 && 
+                                polygon[0] && 
+                                polygon[0].length > 0) {
+                                const centroid = calculatePolygonCentroid(polygon[0]);
+                                if (centroid && centroid.length === 2 && isValidNumber(centroid[0]) && isValidNumber(centroid[1])) {
+                                    createPolygonMarker(centroid, popupContent, useClustering);
+                                }
+                            }
+                        });
+                    }
                 }
             } catch (e) {
-                console.error('Error creating centroid:', e);
+                console.error('Error creating centroid for feature:', feature, e);
+            }
+        }
+        
+        function createPolygonMarker(centroid, popupContent, useClustering) {
+            // Create a marker at the centroid
+            const marker = L.marker([centroid[1], centroid[0]]);
+            marker.bindPopup(popupContent);
+            
+            // Add to cluster group for better performance with large datasets
+            if (useClustering && polygonClusterGroup) {
+                polygonClusterGroup.addLayer(marker);
+            } else {
+                // Use regular layer for smaller datasets or when clustering is disabled
+                polygonMarkerLayer.addLayer(marker);
             }
         }
         
         function calculatePolygonCentroid(coordinates) {
             // Simple centroid calculation for a polygon
-            if (!coordinates || coordinates.length === 0) return null;
+            if (!coordinates || !Array.isArray(coordinates) || coordinates.length === 0) {
+                return null;
+            }
             
             let x = 0;
             let y = 0;
             let numPoints = 0;
             
             for (let i = 0; i < coordinates.length; i++) {
-                x += coordinates[i][0];
-                y += coordinates[i][1];
-                numPoints++;
+                const coord = coordinates[i];
+                if (coord && Array.isArray(coord) && coord.length >= 2 && 
+                    !isNaN(coord[0]) && !isNaN(coord[1])) {
+                    x += coord[0];
+                    y += coord[1];
+                    numPoints++;
+                }
+            }
+            
+            if (numPoints === 0) {
+                return null;
             }
             
             return [x / numPoints, y / numPoints];
         }
         
-        function createPopupContent(properties) {
+        // Escapes text for safe HTML insertion in popups
+        function escapeHtml(unsafeText) {
+            if (unsafeText === null || unsafeText === undefined) return '';
+            return String(unsafeText)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Formats property values into readable strings before escaping
+        function formatPropertyValue(value) {
+            if (value === null || value === undefined) return '';
+            const valueType = typeof value;
+            if (valueType === 'string' || valueType === 'number' || valueType === 'boolean') {
+                return String(value);
+            }
+            try {
+                return JSON.stringify(value);
+            } catch (e) {
+                return String(value);
+            }
+        }
+
+        // Validates if a string is a safe, clickable URL
+        function isValidUrl(value) {
+            if (!value || typeof value !== 'string') return false;
+            
+            const trimmed = value.trim();
+            
+            // Quick check for http/https prefix
+            if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+                return false;
+            }
+            
+            // Validate URL structure using URL constructor
+            try {
+                const url = new URL(trimmed);
+                // Additional security: only allow http and https protocols
+                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Creates a secure clickable link with proper attributes
+        function createSafeLink(url) {
+            // Double-check URL validity
+            if (!isValidUrl(url)) {
+                return escapeHtml(url);
+            }
+            
+            const trimmedUrl = url.trim();
+            
+            // Escape the URL for safe insertion in href attribute
+            // encodeURI handles special characters while preserving URL structure
+            const safeHref = encodeURI(trimmedUrl);
+            
+            // For display, show truncated version if URL is very long
+            let displayText = trimmedUrl;
+            if (trimmedUrl.length > 50) {
+                displayText = trimmedUrl.substring(0, 47) + '...';
+            }
+            
+            // Escape the display text for safe HTML insertion
+            const safeDisplayText = escapeHtml(displayText);
+            
+            // Create link with security attributes:
+            // - target="_blank": opens in new tab
+            // - rel="noopener noreferrer": prevents window.opener access and referrer leaking
+            return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${safeDisplayText}</a>`;
+        }
+
+        // Parses area values robustly, supporting thousand separators, decimal commas, spaces, and simple fractions like "1/2"
+        function parseAreaHectares(raw) {
+            if (raw === null || raw === undefined) return NaN;
+            if (typeof raw === 'number') return raw;
+            let text = String(raw).trim();
+            if (text.length === 0) return NaN;
+
+            // Handle simple fractions like "3/4"
+            const fractionMatch = text.match(/^\s*(-?\d+)\s*\/\s*(\d+)\s*$/);
+            if (fractionMatch) {
+                const numerator = parseFloat(fractionMatch[1]);
+                const denominator = parseFloat(fractionMatch[2]);
+                if (denominator !== 0) return numerator / denominator;
+            }
+
+            // Remove non-numeric unit suffixes (e.g., " ha", "hectares") while preserving digits, separators, and signs
+            text = text.replace(/[^0-9.,\-\s']/g, '');
+
+            // Normalize various thousand separators (spaces, apostrophes, thin spaces)
+            text = text.replace(/[\s'\u00A0\u202F]/g, '');
+
+            // If we have both comma and dot, assume comma is thousands separator → remove commas
+            if (text.indexOf(',') !== -1 && text.indexOf('.') !== -1) {
+                text = text.replace(/,/g, '');
+            } else if (text.indexOf(',') !== -1 && text.indexOf('.') === -1) {
+                // Only comma present → treat comma as decimal separator
+                text = text.replace(/,/g, '.');
+            }
+
+            const parsed = parseFloat(text);
+            return isNaN(parsed) ? NaN : parsed;
+        }
+
+        function createPopupContent(properties, geometryType) {
             if (!properties) return getText('noProperties');
             
+            // Format the title with geometry type
+            let title = geometryType ? geometryType + ' ' + getText('propertiesTitle') : getText('propertiesTitle');
+            
             let content = '<div class="info-box">';
-            content += '<div class="info-title">' + getText('propertiesTitle') + '</div>';
+            content += '<div class="info-title">' + escapeHtml(title) + '</div>';
             content += '<div class="info-content">';
             
             // Add each property to the popup
-            for (const key in properties) {
-                if (properties.hasOwnProperty(key)) {
-                    content += `<strong>${key}:</strong> ${properties[key]}<br>`;
+            Object.keys(properties).forEach(function(key) {
+                const value = properties[key];
+                const safeKey = escapeHtml(key);
+                
+                // Format the value first
+                const formattedValue = formatPropertyValue(value);
+                
+                // Check if the formatted value is a valid URL
+                let safeValue;
+                if (isValidUrl(formattedValue)) {
+                    // Create a clickable link for valid URLs
+                    safeValue = createSafeLink(formattedValue);
+                } else {
+                    // Escape as plain text for non-URLs
+                    safeValue = escapeHtml(formattedValue);
                 }
-            }
+                
+                content += `<strong>${safeKey}:</strong> ${safeValue}<br>`;
+            });
             
             content += '</div></div>';
             return content;
@@ -1348,21 +1994,53 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 }
             }
             
-            // For zoom levels <= 15, show marker representations
-            if (zoom <= 15) {
+            // For zoom levels <= 13, show marker representations (clustered for performance)
+            if (zoom <= 13) {
                 map.removeLayer(polygonLayer);
                 map.removeLayer(pointLayer);
                 
-                if (!map.hasLayer(pointMarkerLayer)) map.addLayer(pointMarkerLayer);
-                if (!map.hasLayer(polygonMarkerLayer)) map.addLayer(polygonMarkerLayer);
+                // Check if we have cluster groups with markers
+                const hasPointClusters = pointClusterGroup && pointClusterGroup.getLayers().length > 0;
+                const hasPolygonClusters = polygonClusterGroup && polygonClusterGroup.getLayers().length > 0;
+                
+                if (hasPointClusters || hasPolygonClusters) {
+                    // Remove regular marker layers if they exist
+                    if (map.hasLayer(pointMarkerLayer)) map.removeLayer(pointMarkerLayer);
+                    if (map.hasLayer(polygonMarkerLayer)) map.removeLayer(polygonMarkerLayer);
+                    
+                    // Add cluster groups for better performance
+                    if (hasPointClusters && !map.hasLayer(pointClusterGroup)) {
+                        map.addLayer(pointClusterGroup);
+                    }
+                    if (hasPolygonClusters && !map.hasLayer(polygonClusterGroup)) {
+                        map.addLayer(polygonClusterGroup);
+                    }
+                } else {
+                    // Use regular marker layers for smaller datasets
+                    if (map.hasLayer(pointClusterGroup)) map.removeLayer(pointClusterGroup);
+                    if (map.hasLayer(polygonClusterGroup)) map.removeLayer(polygonClusterGroup);
+                    
+                    if (!map.hasLayer(pointMarkerLayer)) map.addLayer(pointMarkerLayer);
+                    if (!map.hasLayer(polygonMarkerLayer)) map.addLayer(polygonMarkerLayer);
+                }
             } 
             // For zoom levels > 15, show detailed representations
             else {
-                map.removeLayer(pointMarkerLayer);
-                map.removeLayer(polygonMarkerLayer);
+                // Remove cluster groups
+                if (pointClusterGroup && map.hasLayer(pointClusterGroup)) {
+                    map.removeLayer(pointClusterGroup);
+                }
+                if (polygonClusterGroup && map.hasLayer(polygonClusterGroup)) {
+                    map.removeLayer(polygonClusterGroup);
+                }
                 
+                // Add detailed layers
                 if (!map.hasLayer(polygonLayer)) map.addLayer(polygonLayer);
                 if (!map.hasLayer(pointLayer)) map.addLayer(pointLayer);
+
+                // Ensure feature markers (pointMarkerLayer, polygonMarkerLayer) are hidden at high zoom
+                if (map.hasLayer(pointMarkerLayer)) map.removeLayer(pointMarkerLayer);
+                if (map.hasLayer(polygonMarkerLayer)) map.removeLayer(polygonMarkerLayer);
                 
                 // Update circle radii to represent actual areas in hectares
                 updateCircleRadii();
@@ -1392,6 +2070,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         function initializeDeforestationLayer() {
             // Define the TreeLossLayer class
             const TreeLossLayer = L.TileLayer.extend({
+                options: {
+                    maxZoom: 19,
+                    minZoom: 0
+                },
 				createTile: function(coords, done) {
 					const nativeZoom = 12;
 					const canvas = document.createElement('canvas');
@@ -1598,6 +2280,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 document.getElementById('btn-before-2021').className = '';
                 document.getElementById('btn-2021-onwards').className = '';
                 document.getElementById('btn-clear-all').className = '';
+                document.getElementById('btn-custom').className = '';
+                
+                // Hide individual years section
+                document.getElementById('individualYearsSection').classList.add('hidden');
                 
                 updateDeforestationLayer();
             });
@@ -1614,6 +2300,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 document.getElementById('btn-before-2021').className = 'active';
                 document.getElementById('btn-2021-onwards').className = '';
                 document.getElementById('btn-clear-all').className = '';
+                document.getElementById('btn-custom').className = '';
+                
+                // Hide individual years section
+                document.getElementById('individualYearsSection').classList.add('hidden');
                 
                 updateDeforestationLayer();
             });
@@ -1630,6 +2320,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 document.getElementById('btn-before-2021').className = '';
                 document.getElementById('btn-2021-onwards').className = 'active';
                 document.getElementById('btn-clear-all').className = '';
+                document.getElementById('btn-custom').className = '';
+                
+                // Hide individual years section
+                document.getElementById('individualYearsSection').classList.add('hidden');
                 
                 updateDeforestationLayer();
             });
@@ -1646,8 +2340,123 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
                 document.getElementById('btn-before-2021').className = '';
                 document.getElementById('btn-2021-onwards').className = '';
                 document.getElementById('btn-clear-all').className = 'active';
+                document.getElementById('btn-custom').className = '';
+                
+                // Hide individual years section
+                document.getElementById('individualYearsSection').classList.add('hidden');
                 
                 updateDeforestationLayer();
+            });
+            
+            document.getElementById('btn-custom').addEventListener('click', () => {
+                // Update button states
+                document.getElementById('btn-all-years').className = '';
+                document.getElementById('btn-before-2021').className = '';
+                document.getElementById('btn-2021-onwards').className = '';
+                document.getElementById('btn-clear-all').className = '';
+                document.getElementById('btn-custom').className = 'active';
+                
+                // Show individual years section
+                document.getElementById('individualYearsSection').classList.remove('hidden');
+            });
+            
+            // Spacebar keyboard shortcut to toggle between no overlay and 2021+ overlay
+            document.addEventListener('keydown', (e) => {
+                // Only trigger if no input fields are focused
+                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                    return;
+                }
+                
+                // Spacebar: Toggle between no tree loss overlay and 2021+ overlay
+                if (e.code === 'Space') {
+                    e.preventDefault(); // Prevent page scroll
+                    
+                    // Check if any years from 2021+ are currently active
+                    const has2021Plus = activeYears[21] || activeYears[22] || activeYears[23] || activeYears[24];
+                    
+                    if (has2021Plus) {
+                        // Turn off all years (like Clear All button)
+                        for (let year = 1; year <= 24; year++) {
+                            activeYears[year] = false;
+                            document.getElementById(`btn-year-${year}`).className = '';
+                        }
+                        
+                        // Update button states to show Clear All is active
+                        document.getElementById('btn-all-years').className = '';
+                        document.getElementById('btn-before-2021').className = '';
+                        document.getElementById('btn-2021-onwards').className = '';
+                        document.getElementById('btn-clear-all').className = 'active';
+                        document.getElementById('btn-custom').className = '';
+                        
+                        // Hide individual years section
+                        document.getElementById('individualYearsSection').classList.add('hidden');
+                    } else {
+                        // Turn on 2021+ years (like 2021 Onwards button)
+                        for (let year = 1; year <= 24; year++) {
+                            activeYears[year] = (year >= 21);
+                            document.getElementById(`btn-year-${year}`).className = activeYears[year] ? 'active' : '';
+                        }
+                        
+                        // Update button states to show 2021 Onwards is active
+                        document.getElementById('btn-all-years').className = '';
+                        document.getElementById('btn-before-2021').className = '';
+                        document.getElementById('btn-2021-onwards').className = 'active';
+                        document.getElementById('btn-clear-all').className = '';
+                        document.getElementById('btn-custom').className = '';
+                        
+                        // Hide individual years section
+                        document.getElementById('individualYearsSection').classList.add('hidden');
+                    }
+                    
+                    updateDeforestationLayer();
+                }
+                
+                // F key: Toggle Forest Coverage overlay
+                if (e.code === 'KeyF') {
+                    e.preventDefault();
+                    
+                    if (forestCoverageLayer) {
+                        if (map.hasLayer(forestCoverageLayer)) {
+                            map.removeLayer(forestCoverageLayer);
+                        } else {
+                            forestCoverageLayer.addTo(map);
+                        }
+                    }
+                }
+                
+                // T key: Toggle between ESRI latest and ESRI 2020 base layers
+                if (e.code === 'KeyT') {
+                    e.preventDefault();
+                    
+                    // Get the base layer names
+                    const satelliteLatestName = getText('satelliteLatest');
+                    const satellite2020Name = getText('satellite2020');
+                    
+                    // Get the actual layer objects
+                    const satelliteLatestLayer = baseLayers[satelliteLatestName];
+                    const satellite2020Layer = baseLayers[satellite2020Name];
+                    
+                    // Check which ESRI layer is currently active (if any)
+                    if (currentBaseLayer === satelliteLatestLayer) {
+                        // Switch to ESRI 2020
+                        map.removeLayer(satelliteLatestLayer);
+                        satellite2020Layer.addTo(map);
+                        currentBaseLayer = satellite2020Layer;
+                    } else if (currentBaseLayer === satellite2020Layer) {
+                        // Switch to ESRI latest
+                        map.removeLayer(satellite2020Layer);
+                        satelliteLatestLayer.addTo(map);
+                        currentBaseLayer = satelliteLatestLayer;
+                    } else {
+                        // Not on an ESRI layer, switch to ESRI latest
+                        map.removeLayer(currentBaseLayer);
+                        satelliteLatestLayer.addTo(map);
+                        currentBaseLayer = satelliteLatestLayer;
+                    }
+                    
+                    // Ensure tree loss layer stays on top after base layer change
+                    ensureTreeLossLayerOnTop();
+                }
             });
         }
 
@@ -1690,23 +2499,55 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
             polygonLegendItem.appendChild(polygonLabel);
             legendItems.appendChild(polygonLegendItem);
             
-            // Add active years to the legend
-            for (let year = 1; year <= 24; year++) {
+            // Check if any years from 2001-2020 are active
+            let hasPreEUDR = false;
+            for (let year = 1; year <= 20; year++) {
                 if (activeYears[year]) {
-                    const legendItem = document.createElement('div');
-                    legendItem.className = 'legend-item';
-                    
-                    const colorBox = document.createElement('div');
-                    colorBox.className = 'legend-color';
-                    colorBox.style.backgroundColor = getYearColor(year);
-                    
-                    const label = document.createElement('span');
-                    label.textContent = getText('treeCoverLoss', 2000 + year);
-                    
-                    legendItem.appendChild(colorBox);
-                    legendItem.appendChild(label);
-                    legendItems.appendChild(legendItem);
+                    hasPreEUDR = true;
+                    break;
                 }
+            }
+            
+            // Check if any years from 2021-2024 are active
+            let hasEUDR = false;
+            for (let year = 21; year <= 24; year++) {
+                if (activeYears[year]) {
+                    hasEUDR = true;
+                    break;
+                }
+            }
+            
+            // Add gradient legend item for 2001-2020 if any of those years are active
+            if (hasPreEUDR) {
+                const gradientLegendItem = document.createElement('div');
+                gradientLegendItem.className = 'legend-item';
+                
+                const gradientColorBox = document.createElement('div');
+                gradientColorBox.className = 'legend-color-gradient';
+                
+                const gradientLabel = document.createElement('span');
+                gradientLabel.textContent = getText('treeCoverLoss2001_2020');
+                
+                gradientLegendItem.appendChild(gradientColorBox);
+                gradientLegendItem.appendChild(gradientLabel);
+                legendItems.appendChild(gradientLegendItem);
+            }
+            
+            // Add red legend item for 2021-2024 if any of those years are active
+            if (hasEUDR) {
+                const eudrLegendItem = document.createElement('div');
+                eudrLegendItem.className = 'legend-item';
+                
+                const eudrColorBox = document.createElement('div');
+                eudrColorBox.className = 'legend-color';
+                eudrColorBox.style.backgroundColor = '#FF0000';
+                
+                const eudrLabel = document.createElement('span');
+                eudrLabel.textContent = getText('treeCoverLoss2021_2024');
+                
+                eudrLegendItem.appendChild(eudrColorBox);
+                eudrLegendItem.appendChild(eudrLabel);
+                legendItems.appendChild(eudrLegendItem);
             }
         }
         
